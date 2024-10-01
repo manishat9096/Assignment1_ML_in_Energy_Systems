@@ -9,9 +9,10 @@ import matplotlib.pyplot as plt
 
 
 ### Dataset power
+
 dataset_power = pd.read_csv('Datasets/Energydata_export_power.csv')
 
-new_column_names_power = ['Timestamp', 'Kalby Active Power']  
+new_column_names_power = ['Timestamp', 'Kalby Active Power']
 
 dataset_power.columns = new_column_names_power
 
