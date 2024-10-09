@@ -8,13 +8,20 @@ Created on Wed Oct  9 15:22:29 2024
 
 from Step_2_Final import *
 from Step_3_Final import *
+from Step_4_Final import X_normalized_NLR
+from sklearn.linear_model import Lasso
+from sklearn.linear_model import Ridge
 
+# Base dataset
 X_train, X_test, y_train, y_test = train_test_split(
     X_normalized, y_normalized, test_size=0.2, shuffle=False
 )
 
-from sklearn.linear_model import Lasso
-from sklearn.linear_model import Ridge
+# Dataset with non-linear features
+X_train_NLR, X_test_NLR, y_train_NLR, y_test_NLR = train_test_split(
+    X_normalized_NLR, y_normalized, test_size=0.2, shuffle=False
+)
+
 
 ####################### Part 1 - Lasso (L1 regularization) #######################
 
@@ -65,12 +72,14 @@ print(f"Test MAE w/ Lasso regularization: {mae_lasso:0.10f}")
 best_alpha = 100
 best_rmse = 1
 for alpha in alpha_list:
-    lasso_model = lasso_regularization(X_train, y_train, alpha)
-    y_pred_lasso = lasso_model.predict(X_test)
+    lasso_model = lasso_regularization(X_train_NLR, y_train_NLR, alpha)
+    y_pred_lasso_NLR = lasso_model.predict(X_test_NLR)
 
-    mse = mean_squared_error(y_test, y_pred_lasso)
+    mse = mean_squared_error(y_test_NLR, y_pred_lasso_NLR)
     rmse = np.sqrt(mse)
-    print(f"Test RMSE w/ Lasso regularization for alpha={alpha:0.10f}: {rmse:0.10f}")
+    print(
+        f"Test RMSE w/ for non linear dataset Lasso regularization for alpha={alpha:0.10f}: {rmse:0.10f}"
+    )
 
     if rmse < best_rmse:
         best_rmse = rmse
@@ -79,13 +88,13 @@ for alpha in alpha_list:
 print("Best rmse for alpha = ", best_alpha)
 
 ## Train model for the best alpha
-lasso_model = lasso_regularization(X_train, y_train, best_alpha)
-y_pred_lasso = lasso_model.predict(X_test)
+lasso_model = lasso_regularization(X_train_NLR, y_train_NLR, best_alpha)
+y_pred_lasso_NLR = lasso_model.predict(X_test)
 
-mse_lasso = mean_squared_error(y_test, y_pred_lasso)
-rmse_lasso = np.sqrt(mse_lasso)
-print(f"Test RMSE w/ Lasso regularization: {rmse_lasso:0.10f}")
-mae_lasso = mean_absolute_error(y_test, y_pred_lasso)
+mse_lasso_NLR = mean_squared_error(y_test_NLR, y_pred_lasso_NLR)
+rmse_lasso_NLR = np.sqrt(mse_lasso_NLR)
+print(f"Test RMSE w/ Lasso regularization: {rmse_lasso_NLR:0.10f}")
+mae_lasso_NLR = mean_absolute_error(y_test_NLR, y_pred_lasso_NLR)
 print(f"Test MAE w/ Lasso regularization: {mae_lasso:0.10f}")
 
 
