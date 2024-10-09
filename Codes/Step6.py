@@ -15,30 +15,36 @@ import pandas as pd
 import random
 
 # Import price data
-prices = pd.read_excel('prices.xlsx')
-prices = prices.rename(columns={'SpotPriceEUR': 'Spot price', 'BalancingPowerPriceUpEUR': 'Up reg price', 'BalancingPowerPriceDownEUR': 'Down reg price'})
+prices = pd.read_excel("prices.xlsx")
+prices = prices.rename(
+    columns={
+        "SpotPriceEUR": "Spot price",
+        "BalancingPowerPriceUpEUR": "Up reg price",
+        "BalancingPowerPriceDownEUR": "Down reg price",
+    }
+)
 
 # Parameters
 TIME = [_ for _ in range(1000)]
 
 prediction = {}
 for t in TIME:
-    prediction[t] = random.random() 
+    prediction[t] = random.random()
 
-farm_capacity = 1 #MW
+farm_capacity = 1  # MW
 
 optimal_bid = {}
 
 # Define gurobi model
-model = gb.Model("optimization_model") 
+model = gb.Model("optimization_model")
 
 # Set time limit
 model.Params.TimeLimit = 100
 
-model.setParam('NonConvex', 2)
+model.setParam("NonConvex", 2)
 
 
-# Add variables 
+# Add variables
 # Wind power bid at time t
 bid = {
     t: model.addVar(
@@ -47,37 +53,45 @@ bid = {
         name="Wind power bid at time {0}".format(t),
     )
     for t in TIME
-} 
+}
 
 # Difference between prediction and wind power bid (positive part)
 delta_plus = {
     t: model.addVar(
         lb=0,
         ub=gb.GRB.INFINITY,
-        name="Positive part of the difference between prediction and bid at time {0}".format(t),
+        name="Positive part of the difference between prediction and bid at time {0}".format(
+            t
+        ),
     )
     for t in TIME
-}  
+}
 
 # Difference between prediction and wind power bid (negative part)
 delta_minus = {
     t: model.addVar(
         lb=0,
         ub=gb.GRB.INFINITY,
-        name="Negative part of the difference between prediction and bid at time {0}".format(t),
+        name="Negative part of the difference between prediction and bid at time {0}".format(
+            t
+        ),
     )
     for t in TIME
-}  
+}
 
 # Set objective function
-DA_revenue = gb.quicksum(prices['Spot price'][t] * bid[t] for t in TIME)
-balancing_revenue = gb.quicksum(prices['Down reg price'][t] * delta_plus[t] - prices['Up reg price'][t] * delta_minus[t] for t in TIME)
+DA_revenue = gb.quicksum(prices["Spot price"][t] * bid[t] for t in TIME)
+balancing_revenue = gb.quicksum(
+    prices["Down reg price"][t] * delta_plus[t]
+    - prices["Up reg price"][t] * delta_minus[t]
+    for t in TIME
+)
 
 model.setObjective(DA_revenue + balancing_revenue, GRB.MAXIMIZE)
 
 difference_constraint = {
-    t: model.addConstr(  
-        prediction[t]-bid[t],
+    t: model.addConstr(
+        prediction[t] - bid[t],
         gb.GRB.EQUAL,
         delta_plus[t] - delta_minus[t],
         name="Difference between prediction and bid at time {0}".format(t),
@@ -87,29 +101,29 @@ difference_constraint = {
 
 model.optimize()
 
-#for v in model.getVars():
+# for v in model.getVars():
 #    print('%s %g' % (v.VarName, v.X))
-print('Objective function', model.ObjVal)
+print("Objective function", model.ObjVal)
 
 for t in TIME:
     optimal_bid[t] = bid[t].x
 
 # Plotting the results
 plt.figure(figsize=(10, 6))
-TIME1=[_ for _ in range(100,300)]
+TIME1 = [_ for _ in range(100, 300)]
 
 # Plot the predictions
 prediction_values = [prediction[t] for t in TIME1]
-plt.plot(TIME1, prediction_values, label='Prediction', color='blue', marker='o')
+plt.plot(TIME1, prediction_values, label="Prediction", color="blue", marker="o")
 
 # Plot the optimal bids
 optimal_bid_values = [optimal_bid[t] for t in TIME1]
-plt.plot(TIME1, optimal_bid_values, label='Optimal Bid', color='green', marker='x')
+plt.plot(TIME1, optimal_bid_values, label="Optimal Bid", color="green", marker="x")
 
 # Add labels and title
-plt.xlabel('Time (hours)')
-plt.ylabel('Power (MW)')
-plt.title('Optimal Bids vs Predictions Over Time')
+plt.xlabel("Time (hours)")
+plt.ylabel("Power (MW)")
+plt.title("Optimal Bids vs Predictions Over Time")
 
 # Add a legend
 plt.legend()
@@ -121,8 +135,9 @@ plt.grid(True)
 plt.show()
 
 
+### Maja's code
 
-
+"""
 def optimization(p_forecast):
         
         ###Model
@@ -211,3 +226,4 @@ for t in range(24):
     print(f'Hour {t}: Forecasted power = {round(prediction[t],3)}, Day Ahead Bid = {p_DA_values_lin_closed[t]}')
 
 
+"""
