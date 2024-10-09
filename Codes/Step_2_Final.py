@@ -7,6 +7,9 @@ from sklearn.model_selection import cross_val_score, KFold
 from sklearn.metrics import make_scorer, mean_squared_error, mean_absolute_error
 import matplotlib.pyplot as plt
 import seaborn as sns
+import os
+
+
 
 
 # Import final DataSet
@@ -16,7 +19,8 @@ dataset['Timestamp'] = pd.to_datetime(dataset['time'])
 dataset.drop(columns=['time', 'Unnamed: 0'], inplace=True)
 dataset.set_index('Timestamp', inplace=True)
 
-
+current_dir = os.path.dirname(os.path.abspath(__file__))
+figures_dir = os.path.join(current_dir, '..', 'Figures')
 
 # 2.1 Number and Type of Features
 print('Correlation Matrix')
@@ -34,10 +38,9 @@ plt.ylabel('Correlation Coefficient', fontsize=16)
 plt.xticks(rotation=60, ha='right', fontsize=14)  # Rotate labels for better visibility and align them to the right
 plt.yticks(fontsize=14)
 plt.tight_layout()  # Adjust padding to prevent labels from being cut off
-plt.savefig('correlation_plot_2.png', format='png', dpi=300, bbox_inches='tight')
+#plt.savefig('Figures/correlation_plot_after_filter.png', format='png', dpi=300, bbox_inches='tight')
+plt.savefig(os.path.join(figures_dir, 'Step_2_correlation_plot_after_filter.png'), format='png', dpi=300, bbox_inches='tight')
 plt.show()
-
-
 
 
 # 2.2) Performance of a predictor
@@ -114,7 +117,10 @@ plt.legend()
 
 plt.tight_layout()
 
-file_path = 'Figures/Step_2_RMSE_MAE.png'
+plt.savefig(os.path.join(figures_dir, 'Step_2_RMSE_MAE.png'), format='png')
+#plt.savefig('Step_2_RMSE_MAE.png', format='png')
+
+#file_path = 'Figures/Step_2_RMSE_MAE.png'
 #plt.savefig()
 
 plt.show()

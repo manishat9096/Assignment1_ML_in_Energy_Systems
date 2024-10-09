@@ -73,6 +73,7 @@ plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
 
 plt.tight_layout()
+plt.savefig(os.path.join(figures_dir, 'Step_3_Actual_vs_predicted_values.png'), format='png')
 plt.show()
 
 print("final")
