@@ -45,13 +45,13 @@ plt.show()
 print('Preprocessing ML')
 ## Preprocessing ML
 
-X_0 = dataset[['kalby_active_power', 'prev_day_power', '50thQuantile', '5thQuantile',
+X_0 = dataset[['prev_day_power', '50thQuantile', '5thQuantile',
        '90thQuantile', 'Hour_5thQuantile', 'Hour_50thQuantile',
        'Hour_90thQuantile', 'mean_wind_speed', 'mean_wind_dirn',
        'mean_humidity', 'fr_wind_dirn', 'fr_accum_precip', 'fr_mean_humidity',
        'fr_wind_speed']]
 
-y_0 = dataset['kalby_active_power']
+y_0 = -dataset['kalby_active_power']
 
 scaler = MinMaxScaler()
 
