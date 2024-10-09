@@ -1,9 +1,8 @@
-#from Step_2_Victor import *
 from Step_2_Final import *
-
+print("Step 3")
 # # Split the data 
 
-## 500 first samples
+# 500 first samples
 # X_normalized, y_normalized = X_normalized[:500], y_normalized[:500]
 X_train, X_test, y_train, y_test = train_test_split(X_normalized, y_normalized, test_size=0.2, shuffle=False)
 
@@ -59,9 +58,9 @@ plt.figure(figsize=(14, 7), dpi = 300)
 # Plot actual values
 plt.plot(y_test.index, y_test, color='red', linestyle='--', label='Actual Values', linewidth=1)
 # Plot predictions gradient desscent
-plt.scatter(y_test.index, y_pred_gd, color='blue', alpha=0.6, label='Predicted Values Gradient descent', s=50)
+plt.scatter(y_test.index, y_pred_gd, color='orange', alpha=0.6, label='Predicted Values Gradient descent', s=50)
 # Plot predictions closed form
-plt.scatter(y_test.index, y_pred_closed, color='orange', alpha=0.6, label='Predicted Values Closed form', s=50)
+plt.scatter(y_test.index, y_pred_closed, color='blue', alpha=0.6, label='Predicted Values Closed form', s=50)
 
 # Enhancing the plot
 plt.title('Testing Results: Actual vs Predicted Values', fontsize=16)
@@ -71,11 +70,14 @@ plt.legend(fontsize=12)
 plt.grid(True, linestyle='--', alpha=0.6)
 plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
-
 plt.tight_layout()
+file_path = 'Figures/Step_3_testing.png'
+plt.savefig(file_path)
+
 plt.show()
 
-print("final")
+
+
 
 
 
