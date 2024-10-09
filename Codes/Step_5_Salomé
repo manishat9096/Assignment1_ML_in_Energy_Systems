@@ -1,0 +1,16 @@
+from Step_2_Final import *
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X_normalized, y_normalized, test_size=0.2, shuffle=False
+)
+
+
+## Lasso (L1 regularization)
+from sklearn.linear_model import Lasso
+
+# Create and fit the Lasso regression model
+lasso_model = Lasso(alpha=0.1, max_iter=100000)
+lasso_model.fit(x_poly, y)
+
+# Predict y values using the Lasso regression model
+y_pred_lasso = lasso_model.predict(x_poly)
