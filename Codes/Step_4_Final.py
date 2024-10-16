@@ -1,4 +1,4 @@
-from Step_3_Final import *
+from Step_2_Final import *
 print("Step 4")
 
 def gaussian(t):
@@ -6,9 +6,17 @@ def gaussian(t):
 
 ## Data Prep NLR
 X_0_NLR = X_0.copy() 
-X_0_NLR['mean_wind_speed_cubed'] = X_0_NLR['mean_wind_speed']**3 
-X_0_NLR['5thQuantile_-exp'] = np.exp(X_0_NLR['5thQuantile']/1000)
-X_0_NLR['90thQuantile_exp'] = np.exp(-X_0_NLR['90thQuantile']/1000)
+X_0_NLR['mean_wind_speed_r_squared'] = X_0_NLR['mean_wind_speed']**(0.5)
+X_0_NLR['mean_wind_speed_squared'] = X_0_NLR['mean_wind_speed']**2
+X_0_NLR['mean_wind_speed_cubed'] = X_0_NLR['mean_wind_speed']**3
+X_0_NLR['fr_mean_wind_speed_r_squared'] = X_0_NLR['fr_wind_speed']**(0.5)
+X_0_NLR['fr_wind_speed_squared'] = X_0_NLR['fr_wind_speed']**2
+X_0_NLR['fr_wind_speed_cubed'] = X_0_NLR['fr_wind_speed']**3
+
+X_0_NLR['5thQuantile_exp'] = np.exp(X_0_NLR['5thQuantile']/1000)
+X_0_NLR['Hour_5thQuantile_exp'] = np.exp(X_0_NLR['Hour_5thQuantile']/1000)
+X_0_NLR['90thQuantile_-exp'] = np.exp(-X_0_NLR['90thQuantile']/100)
+X_0_NLR['Hour_90thQuantile_-exp'] = np.exp(-X_0_NLR['Hour_90thQuantile']/100)
     
 scaler = MinMaxScaler()
 
@@ -51,7 +59,7 @@ plt.show()
 
 ## Locally weighted 
 
-def weighted_least_squares(X_query, X_WLS, y_WLS, radius, tau):
+def weighted_least_squares(X_query, X_WLS, y_WLS, radius):
     y_pred_wls = np.zeros(len(X_query))
     for i in range(len(X_query)):
         W = np.diagflat(gaussian(np.linalg.norm(X_WLS - X_query.iloc[i], axis=1) / radius))
@@ -61,21 +69,20 @@ def weighted_least_squares(X_query, X_WLS, y_WLS, radius, tau):
 
 
 X_train, X_test, y_train, y_test = train_test_split(X_normalized, y_normalized, test_size=0.2, shuffle=False)
-tau = 0.05
 
-## Radius sensitivity analysis
+# # Radius sensitivity analysis
 
-# X_WLS = X_train[::1]
-# X_query = X_test[::1]
-# y_WLS = y_train[::1]
-# y_comp = y_test[::1]
+# X_WLS = X_train
+# X_query = X_test
+# y_WLS = y_train
+# y_comp = y_test
 
 
 # radius_values = np.linspace(0.15, 0.5, 10)
 # rmse_values = []
 
 # for radius in radius_values:
-#     y_pred = weighted_least_squares(X_query, X_WLS, y_WLS, radius, tau)
+#     y_pred = weighted_least_squares(X_query, X_WLS, y_WLS, radius)
 #     rmse_values.append(np.sqrt(mean_squared_error(y_comp, y_pred)))
     
 # plt.figure(figsize=(14, 7), dpi = 300)
@@ -99,7 +106,7 @@ X_query = X_test
 y_WLS = y_train
 y_comp = y_test
 
-y_pred_best = weighted_least_squares(X_query, X_WLS, y_WLS, best_radius, tau)
+y_pred_best = weighted_least_squares(X_query, X_WLS, y_WLS, best_radius)
 
 mse_nlr = mean_squared_error(y_comp, y_pred_best)
 rmse_nlr = np.sqrt(mse_nlr)
