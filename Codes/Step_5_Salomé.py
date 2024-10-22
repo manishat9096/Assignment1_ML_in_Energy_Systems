@@ -38,17 +38,22 @@ def lasso_regularization(train_x, train_y, alpha):
 ## Linear models
 
 # Generate 100 alpha values logarithmically spaced between 0.1 and 0.00001
-alpha_list = [0.1, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001, 0.00001, 10]
+alpha_list = [1, 0.1, 0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001, 0.00001]
 
 best_alpha = 100
 best_rmse = 1
+rmse_list_Lasso = []
+mae_list_Lasso = []
+
 for alpha in alpha_list:
     lasso_model = lasso_regularization(X_train, y_train, alpha)
     y_pred_lasso = lasso_model.predict(X_test)
-
     mse = mean_squared_error(y_test, y_pred_lasso)
     rmse = np.sqrt(mse)
+    rmse_list_Lasso.append(rmse)
     print(f"Test RMSE w/ Lasso regularization for alpha={alpha:0.10f}: {rmse:0.10f}")
+    mae = mean_absolute_error(y_test, y_pred_lasso)
+    mae_list_Lasso.append(mae)
 
     if rmse < best_rmse:
         best_rmse = rmse
@@ -70,15 +75,20 @@ print(f"Test MAE w/ Lasso regularization: {mae_lasso:0.10f}")
 ## Non linear models
 best_alpha = 100
 best_rmse = 1
+
+rmse_list_Lasso_NLR = []
+mae_list_Lasso_NLR = []
+
 for alpha in alpha_list:
     lasso_model_NLR = lasso_regularization(X_train_NLR, y_train_NLR, alpha)
     y_pred_lasso_NLR = lasso_model_NLR.predict(X_test_NLR)
 
     mse = mean_squared_error(y_test_NLR, y_pred_lasso_NLR)
     rmse = np.sqrt(mse)
-    print(
-        f"Test RMSE w/ for non linear dataset Lasso regularization for alpha={alpha:0.10f}: {rmse:0.10f}"
-    )
+    rmse_list_Lasso_NLR.append(rmse)
+    print(f"Test RMSE w/ for non linear dataset Lasso regularization for alpha={alpha:0.10f}: {rmse:0.10f}")
+    mae = mean_absolute_error(y_test_NLR, y_pred_lasso_NLR)
+    mae_list_Lasso_NLR.append(mae)
 
     if rmse < best_rmse:
         best_rmse = rmse
@@ -88,7 +98,7 @@ print("Best rmse for alpha = ", best_alpha)
 
 ## Train model for the best alpha
 lasso_model_NLR = lasso_regularization(X_train_NLR, y_train_NLR, best_alpha)
-y_pred_lasso_NLR = lasso_model_NLR.predict(X_test)
+y_pred_lasso_NLR = lasso_model_NLR.predict(X_test_NLR)
 
 mse_lasso_NLR = mean_squared_error(y_test_NLR, y_pred_lasso_NLR)
 rmse_lasso_NLR = np.sqrt(mse_lasso_NLR)
@@ -114,6 +124,9 @@ def ridge_regularization(train_x, train_y, alpha):
 best_alpha = 1
 best_rmse = 1
 
+rmse_list_Ridge = []
+mae_list_Ridge = []
+
 for alpha in alpha_list:
     ridge_model = ridge_regularization(X_train, y_train, alpha)
     y_pred_ridge = ridge_model.predict(X_test)
@@ -121,6 +134,9 @@ for alpha in alpha_list:
     mse = mean_squared_error(y_test, y_pred_ridge)
     rmse = np.sqrt(mse)
     print(f"Test RMSE w/ Ridge regularization for alpha={alpha:0.10f}: {rmse:0.10f}")
+    rmse_list_Ridge.append(rmse)
+    mae = mean_absolute_error(y_test, y_pred_ridge)
+    mae_list_Ridge.append(mae)
 
     if rmse < best_rmse:
         best_rmse = rmse
@@ -143,16 +159,20 @@ print(f"Test MAE w/ Ridge regularization: {mae_ridge:0.10f}")
 best_alpha = 1
 best_rmse = 1
 
+rmse_list_Ridge_NLR = []
+mae_list_Ridge_NLR = []
+
 for alpha in alpha_list:
     ridge_model_NLR = ridge_regularization(X_train_NLR, y_train_NLR, alpha)
     y_pred_ridge_NLR = ridge_model_NLR.predict(X_test_NLR)
 
     mse_NLR = mean_squared_error(y_test_NLR, y_pred_ridge_NLR)
     rmse_NLR = np.sqrt(mse_NLR)
-    print(
-        f"Test RMSE w/ Ridge regularization for non-linear dataset for alpha={alpha:0.10f}: {rmse_NLR:0.10f}"
-    )
-
+    print(f"Test RMSE w/ Ridge regularization for non-linear dataset for alpha={alpha:0.10f}: {rmse_NLR:0.10f}")
+    rmse_list_Ridge_NLR.append(rmse)
+    mae = mean_absolute_error(y_test_NLR, y_pred_ridge_NLR)
+    mae_list_Ridge_NLR.append(mae)
+    
     if rmse_NLR < best_rmse:
         best_rmse = rmse_NLR
         best_alpha = alpha
@@ -203,9 +223,8 @@ plt.scatter(
     s=50,
 )
 
-
 # Enhancing the plot
-plt.title("Testing Results: Actual vs Predicted Values", fontsize=16)
+plt.title("Testing Results: Actual vs Predicted Values (Linear model)", fontsize=16)
 plt.xlabel("Time", fontsize=14)
 plt.ylabel("Values", fontsize=14)
 plt.legend(fontsize=12)
@@ -215,6 +234,7 @@ plt.yticks(fontsize=12)
 
 plt.tight_layout()
 plt.show()
+
 
 #### Non-linear models #####
 ## test plot
@@ -249,9 +269,8 @@ plt.scatter(
     s=50,
 )
 
-
 # Enhancing the plot
-plt.title("Testing Results: Actual vs Predicted Values", fontsize=16)
+plt.title("Testing Results: Actual vs Predicted Values (Non-linear model)", fontsize=16)
 plt.xlabel("Time", fontsize=14)
 plt.ylabel("Values", fontsize=14)
 plt.legend(fontsize=12)
@@ -261,3 +280,5 @@ plt.yticks(fontsize=12)
 
 plt.tight_layout()
 plt.show()
+
+
