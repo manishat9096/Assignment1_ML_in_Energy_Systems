@@ -5,7 +5,6 @@ Created on Wed Oct  9 15:22:29 2024
 
 @author: salomeaubri
 """
-
 from Step_2_Final import *
 from Step_3_Final import *
 from Step_4_Final import X_normalized_NLR
@@ -72,8 +71,8 @@ print(f"Test MAE w/ Lasso regularization: {mae_lasso:0.10f}")
 best_alpha = 100
 best_rmse = 1
 for alpha in alpha_list:
-    lasso_model = lasso_regularization(X_train_NLR, y_train_NLR, alpha)
-    y_pred_lasso_NLR = lasso_model.predict(X_test_NLR)
+    lasso_model_NLR = lasso_regularization(X_train_NLR, y_train_NLR, alpha)
+    y_pred_lasso_NLR = lasso_model_NLR.predict(X_test_NLR)
 
     mse = mean_squared_error(y_test_NLR, y_pred_lasso_NLR)
     rmse = np.sqrt(mse)
@@ -88,14 +87,14 @@ for alpha in alpha_list:
 print("Best rmse for alpha = ", best_alpha)
 
 ## Train model for the best alpha
-lasso_model = lasso_regularization(X_train_NLR, y_train_NLR, best_alpha)
-y_pred_lasso_NLR = lasso_model.predict(X_test)
+lasso_model_NLR = lasso_regularization(X_train_NLR, y_train_NLR, best_alpha)
+y_pred_lasso_NLR = lasso_model_NLR.predict(X_test)
 
 mse_lasso_NLR = mean_squared_error(y_test_NLR, y_pred_lasso_NLR)
 rmse_lasso_NLR = np.sqrt(mse_lasso_NLR)
 print(f"Test RMSE w/ Lasso regularization: {rmse_lasso_NLR:0.10f}")
 mae_lasso_NLR = mean_absolute_error(y_test_NLR, y_pred_lasso_NLR)
-print(f"Test MAE w/ Lasso regularization: {mae_lasso:0.10f}")
+print(f"Test MAE w/ Lasso regularization: {mae_lasso_NLR:0.10f}")
 
 
 ####################### Part 2 - Ridge (L2 regularization) #######################
@@ -140,6 +139,37 @@ mae_ridge = mean_absolute_error(y_test, y_pred_ridge)
 print(f"Test MAE w/ Ridge regularization: {mae_ridge:0.10f}")
 
 
+## Non-linear model
+best_alpha = 1
+best_rmse = 1
+
+for alpha in alpha_list:
+    ridge_model_NLR = ridge_regularization(X_train_NLR, y_train_NLR, alpha)
+    y_pred_ridge_NLR = ridge_model_NLR.predict(X_test_NLR)
+
+    mse_NLR = mean_squared_error(y_test_NLR, y_pred_ridge_NLR)
+    rmse_NLR = np.sqrt(mse_NLR)
+    print(
+        f"Test RMSE w/ Ridge regularization for non-linear dataset for alpha={alpha:0.10f}: {rmse_NLR:0.10f}"
+    )
+
+    if rmse_NLR < best_rmse:
+        best_rmse = rmse_NLR
+        best_alpha = alpha
+
+print("Best rmse in Ridge regularization for NLR dataset for alpha = ", best_alpha)
+
+## Train model for the best alpha
+ridge_model_NLR = ridge_regularization(X_train_NLR, y_train_NLR, best_alpha)
+y_pred_ridge_NLR = ridge_model_NLR.predict(X_test_NLR)
+
+mse_ridge_NLR = mean_squared_error(y_test_NLR, y_pred_ridge_NLR)
+rmse_ridge_NLR = np.sqrt(mse_ridge_NLR)
+print(f"Test RMSE w/ Ridge regularization for NLR dataset: {rmse_ridge_NLR:0.10f}")
+mae_ridge_NLR = mean_absolute_error(y_test_NLR, y_pred_ridge_NLR)
+print(f"Test MAE w/ Ridge regularization for NLR dataset: {mae_ridge_NLR:0.10f}")
+
+
 #### Linear models #####
 ## test plot
 plt.figure(figsize=(14, 7), dpi=300)
@@ -152,9 +182,6 @@ plt.plot(
     label="Actual Values",
     linewidth=1,
 )
-
-# Plot predictions gradient desscent
-# plt.scatter(y_test.index, y_pred_gd, color='blue', alpha=0.6, label='Predicted Values Gradient descent', s=50)
 
 # Plot prediction using the Lasso regression model
 plt.scatter(
@@ -189,4 +216,48 @@ plt.yticks(fontsize=12)
 plt.tight_layout()
 plt.show()
 
-print("final")
+#### Non-linear models #####
+## test plot
+plt.figure(figsize=(14, 7), dpi=300)
+# Plot actual values
+plt.plot(
+    y_test_NLR.index,
+    y_test_NLR,
+    color="red",
+    linestyle="--",
+    label="Actual Values",
+    linewidth=1,
+)
+
+# Plot prediction using the Lasso regression model
+plt.scatter(
+    y_test_NLR.index,
+    y_pred_lasso_NLR,
+    color="blue",
+    alpha=0.6,
+    label="Predicted Values Lasso",
+    s=50,
+)
+
+# Plot prediction using the Ridge regression model
+plt.scatter(
+    y_test_NLR.index,
+    y_pred_ridge_NLR,
+    color="orange",
+    alpha=0.6,
+    label="Predicted Values Ridge",
+    s=50,
+)
+
+
+# Enhancing the plot
+plt.title("Testing Results: Actual vs Predicted Values", fontsize=16)
+plt.xlabel("Time", fontsize=14)
+plt.ylabel("Values", fontsize=14)
+plt.legend(fontsize=12)
+plt.grid(True, linestyle="--", alpha=0.6)
+plt.xticks(fontsize=12)
+plt.yticks(fontsize=12)
+
+plt.tight_layout()
+plt.show()
