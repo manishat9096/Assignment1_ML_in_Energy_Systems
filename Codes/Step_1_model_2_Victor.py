@@ -101,7 +101,7 @@ plt.scatter(y_0.index, optimal_bid_values, color='blue', alpha=0.6, label='Optim
 # Add labels and title
 plt.xlabel("Time (hours)", fontsize=14)  
 plt.ylabel("Power (MW)", fontsize=14)  
-plt.title("Optimal Bids vs Acutal Values Over Time", fontsize=16)
+plt.title("Optimal Bids vs Actual Values Over Time", fontsize=16)
 plt.legend(fontsize=12)
 plt.grid(True, linestyle='--', alpha=0.6)
 plt.xticks(fontsize=12)
@@ -113,10 +113,10 @@ plt.show()
 
 
 # X_0_model_2 = dataset[['50thQuantile', '5thQuantile',
-#        '90thQuantile', 'Hour_5thQuantile', 'Hour_50thQuantile',
-#        'Hour_90thQuantile', 'mean_wind_speed', 'mean_wind_dirn',
-#        'mean_humidity', 'fr_wind_dirn', 'fr_accum_precip', 'fr_mean_humidity',
-#        'fr_wind_speed']].join(prices, how='inner') 
+#         '90thQuantile', 'Hour_5thQuantile', 'Hour_50thQuantile',
+#         'Hour_90thQuantile', 'mean_wind_speed', 'mean_wind_dirn',
+#         'mean_humidity', 'fr_wind_dirn', 'fr_accum_precip', 'fr_mean_humidity',
+#         'fr_wind_speed']].join(prices, how='inner') 
 
 X_0_model_2 =  dataset[['fr_wind_speed']].join(prices, how='inner')
 X_0_model_2.drop(columns=['fr_wind_speed'], inplace=True)
