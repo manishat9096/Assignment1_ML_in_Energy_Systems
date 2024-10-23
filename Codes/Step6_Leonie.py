@@ -14,6 +14,8 @@ import random
 import os
 
 from Step_3_Final import y_pred_gd, y_pred_closed
+from Step_4_Final import y_pred_best #NON linear
+from Step_5_Final import y_pred_lasso,y_pred_ridge,y_pred_lasso_NLR,y_pred_ridge_NLR #NON linear
 
 # Import price data
 prices = pd.read_excel("C:/Users/leoni/Desktop/Machine Learning in Energy System/Assignment1_ML_in_Energy_Systems/Datasets/prices.xlsx")
@@ -25,6 +27,16 @@ prices = prices.rename(
     }
 )
 
+# Now divide the specified columns by 1000
+columns_to_divide = ["Spot price", "Up reg price", "Down reg price"]
+prices[columns_to_divide] = prices[columns_to_divide] / 1000
+
+#just use the last 566 values
+spot_price = prices['Spot price'].tail(566).reset_index(drop=True)
+UP_price = prices['Up reg price'].tail(566).reset_index(drop=True)
+DW_price = prices['Down reg price'].tail(566).reset_index(drop=True)
+
+
 # Import actual power production
 dataset = pd.read_csv("C:/Users/leoni/Desktop/Machine Learning in Energy System/Assignment1_ML_in_Energy_Systems/Datasets/Cumulative_dataset.csv")
 
@@ -32,10 +44,21 @@ dataset = pd.read_csv("C:/Users/leoni/Desktop/Machine Learning in Energy System/
 TIME = range(566)  # Simpler range definition
 
 # Choose the prediction model
-prediction_model = "gradient_descent"  # Could be 'closed_form' or 'gradient_descent'
-prediction = y_pred_gd if prediction_model == "gradient_descent" else y_pred_closed
 
-farm_capacity = 6  # MW
+prediction_model = {"gradient_descent": y_pred_gd, 'closed_form': y_pred_closed, 'non_linear_model': y_pred_best
+                    , 'Linear_L1': y_pred_lasso, 'Linear_L2': y_pred_ridge, 'non_linear_L1': y_pred_lasso_NLR, 
+                    'non_linear_L2': y_pred_ridge_NLR}
+
+MLmodel = "non_linear_L2" # Could be 'closed_form' or 'gradient_descent'
+prediction1=prediction_model[MLmodel] 
+
+# Reverting normalization
+y_0 = -dataset['kalby_active_power']
+y_max = max(y_0)
+y_min = min(y_0)
+prediction = prediction1 * (y_max - y_min) + y_min
+
+farm_capacity = 6000  # kW
 
 # Initialize optimization model
 model = gb.Model("optimization_model")
@@ -48,9 +71,9 @@ delta_plus = {t: model.addVar(lb=0, ub=gb.GRB.INFINITY, name=f"Positive differen
 delta_minus = {t: model.addVar(lb=0, ub=gb.GRB.INFINITY, name=f"Negative difference at time {t}") for t in TIME}
 
 # Define objective function
-DA_revenue = gb.quicksum(prices["Spot price"][t] * bid[t] for t in TIME)
+DA_revenue = gb.quicksum(spot_price[t] * bid[t] for t in TIME)
 balancing_revenue = gb.quicksum(
-    prices["Down reg price"][t] * delta_plus[t] - prices["Up reg price"][t] * delta_minus[t] for t in TIME
+    DW_price[t] * delta_plus[t] - UP_price[t] * delta_minus[t] for t in TIME
 )
 model.setObjective(DA_revenue + balancing_revenue, GRB.MAXIMIZE)
 
@@ -70,17 +93,14 @@ TIME1 = range(100, 300)
 plt.plot(TIME1, [prediction[t] for t in TIME1], label="Prediction", color="blue", marker="o")
 plt.plot(TIME1, [optimal_bid[t] for t in TIME1], label="Optimal Bid", color="green", marker="x")
 plt.xlabel("Time (hours)")
-plt.ylabel("Power (MW)")
+plt.ylabel("Power (kW)")
 plt.title("Optimal Bids vs Predictions Over Time")
 plt.legend()
 plt.grid(True)
 plt.show()
 
 # Calculate actual revenue (real power production)
-p_real = dataset['kalby_active_power'].tail(566).reset_index(drop=True)
-spot_price = prices['Spot price'].tail(566).reset_index(drop=True)
-UP_price = prices['Up reg price'].tail(566).reset_index(drop=True)
-DW_price = prices['Down reg price'].tail(566).reset_index(drop=True)
+p_real = -(dataset['kalby_active_power'].tail(566).reset_index(drop=True))
 
 # Calculate balance, DW, and UP
 balance = {t: p_real[t] - optimal_bid[t] for t in TIME}
@@ -96,7 +116,7 @@ balancing_revenue = sum(
 # Print results
 print(f"Day-Ahead Revenue: {DA_revenue}")
 print(f"Balancing Revenue: {balancing_revenue}")
-print(f"Real Revenue ({prediction_model}): {DA_revenue + balancing_revenue}")
+print(f"Real Revenue ({MLmodel}): {DA_revenue + balancing_revenue}")
 
 
 ### Maja's code
