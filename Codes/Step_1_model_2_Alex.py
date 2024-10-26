@@ -5,12 +5,12 @@ from gurobipy import GRB
 import random
 
 # Import price data
-prices = pd.read_excel("Datasets/prices.xlsx")
-prices = prices.rename(
+prices1 = pd.read_excel("prices.xlsx")
+prices = prices1.rename(
     columns={
         "SpotPriceEUR": "Spot price",
         "BalancingPowerPriceUpEUR": "Up reg price",
-        "BalancingPowerPriceDownEgUR": "Down reg price",
+        "BalancingPowerPriceDownEUR": "Down reg price",
         "HourDK" : "Timestamp"
     }
 )
@@ -19,6 +19,7 @@ prices.set_index('Timestamp', inplace=True)
 
 windfarm_capacity = 6000 # kW
 
+print("Model")
 # Define gurobi model
 model = gb.Model("optimization_model")
 
@@ -108,7 +109,7 @@ plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
 plt.tight_layout()
 file_path = 'Figures/Step_1_model_2_bids.png'
-plt.savefig(file_path)
+#plt.savefig(file_path)
 plt.show()
 
 
@@ -132,3 +133,5 @@ X_normalized_model_2 = pd.DataFrame(X_normalized_model_2, columns=X_0_model_2.co
 
 y_normalized_model_2 = scaler.fit_transform(y_0_model_2)
 y_normalized_model_2 = pd.DataFrame(y_normalized_model_2, columns=y_0_model_2.columns)
+
+print("finish step 1")
