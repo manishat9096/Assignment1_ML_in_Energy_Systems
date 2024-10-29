@@ -1,8 +1,6 @@
 from Step_1_model_2_Alex import *
 # print("Step 2 - model 2 - Linear Regression")
 
-# # Split the data 
-X_train, X_test, y_train, y_test = train_test_split(X_normalized_model_2, y_normalized_model_2, test_size=0.2, shuffle=False)
 
 
 # ## Closed form 
@@ -114,9 +112,12 @@ X_train, X_test, y_train, y_test = train_test_split(X_normalized_model_2, y_norm
 # print(f"Test RMSE w/ LWLS: {rmse_LWLS:0.10f}")
 # mae_nlr = mean_absolute_error(y_comp, y_pred_best)
 # print(f"Test MAE w/ LWLS: {mae_nlr:0.10f}")
- 
 
-## K-Nearest 
+# # Split the data
+X_train, X_test, y_train, y_test = train_test_split(X_normalized_model_2, y_normalized_model_2, test_size=0.2, shuffle=False)
+
+ 
+## K-Nearest
 print("Step 2 - model 2 - K-Nearest")
 from sklearn.neighbors import KNeighborsClassifier
 
@@ -194,4 +195,4 @@ plt.tight_layout()
 
 plt.show()
 
-print("The end")
+print("The end step 2")
