@@ -181,9 +181,9 @@ for alpha in alpha_list:
     mse_NLR = mean_squared_error(y_val_NLR, y_pred_ridge_NLR)
     rmse_NLR = np.sqrt(mse_NLR)
     print(f"Validation RMSE w/ Ridge regularization for non-linear dataset for alpha={alpha:0.10f}: {rmse_NLR:0.10f}")
-    rmse_list_Ridge_NLR.append(rmse)
-    mae = mean_absolute_error(y_val_NLR, y_pred_ridge_NLR)
-    mae_list_Ridge_NLR.append(mae)
+    rmse_list_Ridge_NLR.append(rmse_NLR)
+    mae_NLR = mean_absolute_error(y_val_NLR, y_pred_ridge_NLR)
+    mae_list_Ridge_NLR.append(mae_NLR)
     
     if rmse_NLR < best_rmse:
         best_rmse = rmse_NLR
