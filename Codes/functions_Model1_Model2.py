@@ -25,10 +25,220 @@ import os
 
 #all steps are merged into functions in this file
 
+def M2_step3(y_pred_class_best, X_train_class, y_test_class, best_model):
+    ############ Optimisation for testing ############
+    scaler = MinMaxScaler()
+    #For the test
+    dataset_test = pd.read_csv("../Datasets/Cumulative_dataset_test.csv")
+    y_0 = -dataset_test['kalby_active_power']
+
+    prices1 = pd.read_excel("../Datasets/prices_test_set.xlsx") #For the test
+
+    prices = prices1.rename(
+        columns={
+            "SpotPriceEUR": "Spot price",
+            "BalancingPowerPriceUpEUR": "Up reg price",
+            "BalancingPowerPriceDownEUR": "Down reg price",
+            "HourDK" : "Timestamp"
+        }
+    )
+
+    prices.set_index('Timestamp', inplace=True)
+    prices = prices[['Spot price', 'Up reg price', 'Down reg price']]
+
+    #prices.drop(columns=['HourUTC', 'PriceArea', 'ImbalanceMWh', 'ImbalancePriceEUR'], inplace=True)
+
+
+    windfarm_capacity = 6000 # kW
+
+    print("Model")
+    # Define gurobi model
+    model = gb.Model("optimization_model")
+
+    # Set time limit
+    model.Params.TimeLimit = 100
+
+    # Add variables
+    # Wind power bid at time t
+    bid = {
+        t: model.addVar(
+            lb=0,
+            ub=windfarm_capacity,
+            name="Wind power bid at time {0}".format(t),
+        )
+        for t in y_0.index
+    }
+
+    # Difference between prediction and wind power bid (positive part)
+    delta_plus = {
+        t: model.addVar(
+            lb=0,
+            ub=gb.GRB.INFINITY,
+            name="Positive part of the difference between prediction and bid at time {0}".format(
+                t
+            ),
+        )
+        for t in y_0.index
+    }
+
+    # Difference between prediction and wind power bid (negative part)
+    delta_minus = {
+        t: model.addVar(
+            lb=0,
+            ub=gb.GRB.INFINITY,
+            name="Negative part of the difference between prediction and bid at time {0}".format(
+                t
+            ),
+        )
+        for t in y_0.index
+    }
+
+    # Set objective function
+    DA_revenue = gb.quicksum(prices["Spot price"][t] * bid[t] for t in y_0.index)
+    balancing_revenue = gb.quicksum(
+        prices["Down reg price"][t] * delta_plus[t]
+        - prices["Up reg price"][t] * delta_minus[t]
+        for t in y_0.index
+    )
+
+    model.setObjective(DA_revenue + balancing_revenue, GRB.MAXIMIZE)
+
+    difference_constraint = {
+        t: model.addConstr(
+            y_0[t] - bid[t],
+            gb.GRB.EQUAL,
+            delta_plus[t] - delta_minus[t],
+            name="Difference between prediction and bid at time {0}".format(t),
+        )
+        for t in y_0.index
+    }
+
+    model.optimize()
+
+    print("Objective function", model.ObjVal)
+
+    optimal_bid = {}
+    for t in y_0.index:
+        optimal_bid[t] = bid[t].x
+
+    optimal_bid_values = [optimal_bid[t] for t in y_0.index]
+
+
+    ########## Model results #########
+
+    X_0_model_2 = dataset_test[['time', '50thQuantile', '5thQuantile',
+             '90thQuantile', 'Hour_5thQuantile', 'Hour_50thQuantile',
+             'Hour_90thQuantile', 'mean_wind_speed', 'mean_wind_dirn',
+             'mean_humidity', 'fr_wind_dirn', 'fr_accum_precip', 'fr_mean_humidity',
+             'fr_wind_speed']]
+
+    X_0_model_2.rename(columns={'time': 'Timestamp'}, inplace=True)
+
+    X_0_model_2.set_index('Timestamp', inplace=True)
+
+    X_0_model_2.index = pd.to_datetime(X_0_model_2.index)
+    prices.index = pd.to_datetime(prices.index)
+
+    X_0_model_2 = X_0_model_2.join(prices, how='inner')
+
+    #X_0_model_2 = dataset_test[['50thQuantile', '5thQuantile',
+            # '90thQuantile', 'Hour_5thQuantile', 'Hour_50thQuantile',
+            # 'Hour_90thQuantile', 'mean_wind_speed', 'mean_wind_dirn',
+            # 'mean_humidity', 'fr_wind_dirn', 'fr_accum_precip', 'fr_mean_humidity',
+            # 'fr_wind_speed']].join(prices, how='inner')
+
+    y_0_model_2 = pd.DataFrame(optimal_bid_values, y_0.index).rename(
+        columns={
+            0: "Optimal_Bid"
+            }
+        )
+    print("stop")
+
+    X_normalized_model_2 = scaler.fit_transform(X_0_model_2)
+    X_normalized_model_2 = pd.DataFrame(X_normalized_model_2, columns=X_0_model_2.columns)
+
+    y_normalized_model_2 = scaler.fit_transform(y_0_model_2)
+    y_normalized_model_2 = pd.DataFrame(y_normalized_model_2, columns=y_0_model_2.columns)
+
+    X_test_class = X_normalized_model_2.values if hasattr(X_normalized_model_2, 'values') else X_train_class
+
+    y_test_class = y_normalized_model_2.values.ravel() if hasattr(y_normalized_model_2, 'values') else y_test_class.ravel()
+
+    y_pred_class_best = best_model.predict(X_test_class)
+
+
+    ################ Performace ##############
+
+    # Revert normalization on y_pred_class_best to get the power predictions in the original scale
+
+    y_max = 6000
+    y_min = 0
+    prediction_knn = y_pred_class_best * (y_max - y_min) + y_min
+
+    y_0_model_2 = y_0_model_2.tail(len(prediction_knn))
+    #y_0_model_2['Optimal_Bid'] = y_0_model_2['Optimal_Bid'].tail(len(prediction_knn)).reset_index(drop=True)
+
+    TIME = range(len(prediction_knn))
+
+    # Calculate actual revenue (using the actual power production values)
+    p_real_val = -(dataset_test['kalby_active_power'].tail(len(y_pred_class_best)).reset_index(drop=True))
+
+    # Load price data for validation set
+    prices_val_set = pd.read_excel("../Datasets/prices_test_set.xlsx")
+    prices_val_set = prices_val_set.rename(
+        columns={
+            "SpotPriceEUR": "Spot price",
+            "BalancingPowerPriceUpEUR": "Up reg price",
+            "BalancingPowerPriceDownEUR": "Down reg price",
+        }
+    )
+
+    # Convert prices to per kWh by dividing by 1000
+    columns_to_divide = ["Spot price", "Up reg price", "Down reg price"]
+    prices_val_set[columns_to_divide] = prices_val_set[columns_to_divide] / 1000
+
+    spot_price = prices_val_set['Spot price'].tail(len(prediction_knn)).reset_index(drop=True)
+    UP_price = prices_val_set['Up reg price'].tail(len(prediction_knn)).reset_index(drop=True)
+    DW_price = prices_val_set['Down reg price'].tail(len(prediction_knn)).reset_index(drop=True)
+
+    print('stop')
+
+    #--------------Calculate predicted revenue ---------------------#
+    # Calculate balance, DW, and UP
+    balance = {t: prediction_knn[t] - y_0_model_2['Optimal_Bid'][t] for t in TIME} #y_0_mode_2 is the optimal bid
+    DW = {t: max(balance[t], 0) for t in TIME}  # Downward regulation
+    UP = {t: max(-balance[t], 0) for t in TIME}  # Upward regulation
+
+    # Calculate real DA and balancing revenue
+    DA_revenue_pred = sum(spot_price[t] * y_0_model_2['Optimal_Bid'][t] for t in TIME)
+    balancing_revenue_pred = sum(
+        DW_price[t] * DW[t] - UP_price[t] * UP[t] for t in TIME
+    )
+    Total_revenue_pred = DA_revenue_pred + balancing_revenue_pred
+
+    #--------------Calculate real revenue ---------------------#
+    # Calculate balance, DW, and UP
+    balance = {t: p_real_val[t] - y_0_model_2['Optimal_Bid'][t] for t in TIME} #y_0_mode_2 is the optimal bid
+    DW = {t: max(balance[t], 0) for t in TIME}  # Downward regulation
+    UP = {t: max(-balance[t], 0) for t in TIME}  # Upward regulation
+
+    # Calculate real DA and balancing revenue
+    DA_revenue = sum(spot_price[t] * y_0_model_2['Optimal_Bid'][t] for t in TIME)
+    balancing_revenue = sum(
+        DW_price[t] * DW[t] - UP_price[t] * UP[t] for t in TIME
+    )
+
+    Total_revenue = DA_revenue + balancing_revenue
+
+
+    print('stop')
+    return
+
 def M2_Step2(X_normalized_model_2, y_normalized_model_2):
-    #here we test different ML models that gives the least error.
-    
+    #here we test different ML models that gives the least error. The unused models are commented out
+
     # print("Step 2 - model 2 - Linear Regression")
+
     # ## Closed form 
     # theta_closed = np.dot(np.linalg.inv(np.dot(X_train.T, X_train)), np.dot(X_train.T, y_train))
     # y_pred_closed = np.dot(X_test, theta_closed)
@@ -192,11 +402,38 @@ def M2_Step2(X_normalized_model_2, y_normalized_model_2):
     print(f"Test RMSE w/ class: {rmse_class:0.10f}")
     print(f"Test MAE w/ class: {mae_class:0.10f}")
 
-    return y_pred_class_best
+    ## Plot
+    plt.figure(figsize=(14, 7), dpi = 300)
+    # Plot actual values
+    plt.plot(y_test.index, y_test, color='red', linestyle='--', label='Optimal bids', linewidth=1)
+    # # Plot predictions closed form
+    # plt.scatter(y_test.index, y_pred_closed, color='blue', alpha=0.6, label='Predicted Values - Linear Closed form', s=50)
+    # # Plot predictions closed form NLR
+    # plt.scatter(y_test.index, y_pred_closed_NLR, color='orange', alpha=0.6, label='Predicted Values - Non-Linear Closed form', s=50)
+    # # Plot predictions LWLS
+    # plt.scatter(y_test.index, y_pred_best, color='green', alpha=0.6, label='Predicted Values - Weighted Least-Squares estimation', s=50)
+    # Plot predictions class
+    plt.scatter(y_test.index, y_pred_class_best, color='black', alpha=0.6, label='Predicted Values - Classification', s=50)
 
-def M2_Step1(prices, dataset):
+    # Enhancing the plot
+    plt.title('Testing Results: Actual vs Predicted Values', fontsize=16)
+    plt.xlabel('Time', fontsize=14)  
+    plt.ylabel('Values', fontsize=14)  
+    plt.legend(fontsize=12)
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tight_layout()
+    plt.show()
+    print("The end step 2")
+    return y_pred_class_best, X_train_class, y_test_class, best_model
+
+def M2_Step1(prices1, dataset):
     print('Model 2 Step 1')
-    prices = prices.rename(
+    
+    scaler = MinMaxScaler()
+    
+    prices = prices1.rename(
         columns={
             "SpotPriceEUR": "Spot price",
             "BalancingPowerPriceUpEUR": "Up reg price",
@@ -206,16 +443,16 @@ def M2_Step1(prices, dataset):
     )
     prices.drop(columns=['HourUTC', 'PriceArea', 'ImbalanceMWh', 'ImbalancePriceEUR'], inplace=True)
     prices.set_index('Timestamp', inplace=True)
-
+    
     windfarm_capacity = 6000 # kW
-
-    scaler = MinMaxScaler()
+    
+    print("Model")
     # Define gurobi model
     model = gb.Model("optimization_model")
-
+    
     # Set time limit
     model.Params.TimeLimit = 100
-
+    
     # Add variables
     # Wind power bid at time t
     bid = {
@@ -226,7 +463,7 @@ def M2_Step1(prices, dataset):
         )
         for t in y_0.index
     }
-
+    
     # Difference between prediction and wind power bid (positive part)
     delta_plus = {
         t: model.addVar(
@@ -238,7 +475,7 @@ def M2_Step1(prices, dataset):
         )
         for t in y_0.index
     }
-
+    
     # Difference between prediction and wind power bid (negative part)
     delta_minus = {
         t: model.addVar(
@@ -250,7 +487,7 @@ def M2_Step1(prices, dataset):
         )
         for t in y_0.index
     }
-
+    
     # Set objective function
     DA_revenue = gb.quicksum(prices["Spot price"][t] * bid[t] for t in y_0.index)
     balancing_revenue = gb.quicksum(
@@ -258,9 +495,9 @@ def M2_Step1(prices, dataset):
         - prices["Up reg price"][t] * delta_minus[t]
         for t in y_0.index
     )
-
+    
     model.setObjective(DA_revenue + balancing_revenue, GRB.MAXIMIZE)
-
+    
     difference_constraint = {
         t: model.addConstr(
             y_0[t] - bid[t],
@@ -270,25 +507,25 @@ def M2_Step1(prices, dataset):
         )
         for t in y_0.index
     }
-
+    
     model.optimize()
-
+    
     print("Objective function", model.ObjVal)
-
+    
     optimal_bid = {}
     for t in y_0.index:
         optimal_bid[t] = bid[t].x
-
+    
     # Plotting the results
     plt.figure(figsize=(14, 7), dpi = 300)
-
+    
     # Plot the predictions
     plt.plot(y_0.index, y_0, color='red', linestyle='--', label='Actual Values', linewidth=1)
-
+    
     # Plot the optimal bids
     optimal_bid_values = [optimal_bid[t] for t in y_0.index]
     plt.scatter(y_0.index, optimal_bid_values, color='blue', alpha=0.6, label='Optimal Bids', s=50)
-
+    
     # Add labels and title
     plt.xlabel("Time (hours)", fontsize=14)  
     plt.ylabel("Power (MW)", fontsize=14)  
@@ -298,13 +535,20 @@ def M2_Step1(prices, dataset):
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
     plt.tight_layout()
-    plt.savefig(os.path.join(figures_dir, 'Step_1_model_2_bids.png'), format='png')
+    file_path = 'Figures/Step_1_model_2_bids.png'
+    #plt.savefig(file_path)
     plt.show()
-
-
-    X_0_model_2 =  dataset[['fr_wind_speed']].join(prices, how='inner')
-    X_0_model_2.drop(columns=['fr_wind_speed'], inplace=True)
-
+    
+    
+    X_0_model_2 = dataset[['50thQuantile', '5thQuantile',
+             '90thQuantile', 'Hour_5thQuantile', 'Hour_50thQuantile',
+             'Hour_90thQuantile', 'mean_wind_speed', 'mean_wind_dirn',
+             'mean_humidity', 'fr_wind_dirn', 'fr_accum_precip', 'fr_mean_humidity',
+             'fr_wind_speed']].join(prices, how='inner')
+    
+    #X_0_model_2 =  dataset[['fr_wind_speed']].join(prices, how='inner')
+    #X_0_model_2.drop(columns=['fr_wind_speed'], inplace=True)
+    
     y_0_model_2 = pd.DataFrame(optimal_bid_values, y_0.index).rename(
         columns={
             0: "Optimal_Bid"
@@ -313,9 +557,11 @@ def M2_Step1(prices, dataset):
     
     X_normalized_model_2 = scaler.fit_transform(X_0_model_2)
     X_normalized_model_2 = pd.DataFrame(X_normalized_model_2, columns=X_0_model_2.columns)
-
+    
     y_normalized_model_2 = scaler.fit_transform(y_0_model_2)
     y_normalized_model_2 = pd.DataFrame(y_normalized_model_2, columns=y_0_model_2.columns)
+    
+    print("finish step 1")
     return X_normalized_model_2, y_normalized_model_2
 
 def Step7_kmeansCluster(X_normalized, y_normalized):
@@ -428,23 +674,26 @@ def evaluate_combination(combination, X_train_cluster, y_train_cluster, X_test_c
     
     return mse_k_means, stacked_df
 
-def Step6_Gurobi_Validation(dataset, prices_val_set, prediction1, MLmodel):
-    print("Step 6")
-    print(f"Validation for {MLmodel}")
+def Step6_Gurobi_Validation(dataset, prices_val_set, prediction1, MLmodel, lasso_model):
+    dataset = pd.read_csv("../Datasets/Cumulative_dataset.csv")
     farm_capacity = 6000  # kW
-    ################################# Validation ################################# 
+    
     # Reverting normalization
-    y_0 = -dataset['kalby_active_power']
+    prediction1 = prediction_model[MLmodel]
+    #prediction = np.full(556, 0)
+    y_0 = -dataset["kalby_active_power"]
     y_max = max(y_0)
     y_min = min(y_0)
     prediction = prediction1 * (y_max - y_min) + y_min
-
-    TIME = range(len(prediction))  # Simpler range definition
-
+    TIME = range(len(prediction))
+    #prediction = prediction[-24:]
     # Calculate actual revenue (real power production)
-    p_real_val = -(dataset['kalby_active_power'].tail(len(prediction1)).reset_index(drop=True))
+    p_real_val = -(
+        dataset["kalby_active_power"].tail(len(prediction)).reset_index(drop=True)
+    )
 
     # Import price data (validation set)
+    prices_val_set = pd.read_excel("../Datasets/prices.xlsx")
     prices_val_set = prices_val_set.rename(
         columns={
             "SpotPriceEUR": "Spot price",
@@ -456,62 +705,155 @@ def Step6_Gurobi_Validation(dataset, prices_val_set, prediction1, MLmodel):
     # Now divide the specified columns by 1000(in per kWh)
     columns_to_divide = ["Spot price", "Up reg price", "Down reg price"]
     prices_val_set[columns_to_divide] = prices_val_set[columns_to_divide] / 1000
-      
-    optimal_obj_val, real_revenue_val=optimization_validation(prediction,TIME, prices_val_set, p_real_val, farm_capacity)
+
+    # Only keep the validation set
+    prices_val_final = prices_val_set.tail(len(prediction)).reset_index(drop=True)
+
+    optimal_bid_val, optimal_obj_val, real_revenue_val = optimization_validation(
+        prediction, prices_val_final, p_real_val, farm_capacity
+    )
 
     # Print results
     print(f"Validation Set Optimal Objective: {optimal_obj_val}")
     print(f"Validation Set Real Revenue ({MLmodel}): {real_revenue_val}")
+
+
+    ################################### Test ####################################
+    # Best model for Step 6
+    chosen_model = "Linear_L1"
+
+    # Import actual power production (test set)
+    dataset_test = pd.read_csv("../Datasets/Cumulative_dataset_test.csv")
+
+    X_0 = dataset_test[['prev_day_power', '50thQuantile', '5thQuantile',
+           '90thQuantile', 'Hour_5thQuantile', 'Hour_50thQuantile',
+           'Hour_90thQuantile', 'mean_wind_speed', 'mean_wind_dirn',
+           'mean_humidity', 'fr_wind_dirn', 'fr_accum_precip', 'fr_mean_humidity',
+           'fr_wind_speed']]
+
+    y_0 = -dataset_test['kalby_active_power']
+
+    ## Fit and transform the selected columns
+    scaler = MinMaxScaler()
+
+    X_normalized = scaler.fit_transform(X_0)
+    X_normalized = pd.DataFrame(X_normalized, columns=X_0.columns)
+
+    y_max = max(y_0)
+    y_min = min(y_0)
+    y_normalized = (y_0 - y_min) / (y_max - y_min)
+
+    ## Retrieve model
+    best_prediction1 = lasso_model.predict(X_normalized)
+
+    best_prediction = best_prediction1 * (y_max - y_min) + y_min
+
+    # Calculate actual revenue (real power production)
+    p_real_test = -(
+        dataset_test["kalby_active_power"].tail(len(best_prediction)).reset_index(drop=True)
+    )
+
+    # Import price data (test set)
+    prices_test_set = pd.read_excel("../Datasets/prices_test_set.xlsx")
+    prices_test_set = prices_test_set.rename(
+        columns={
+            "SpotPriceEUR": "Spot price",
+            "BalancingPowerPriceUpEUR": "Up reg price",
+            "BalancingPowerPriceDownEUR": "Down reg price",
+        }
+    )
+
+    # Now divide the specified columns by 1000(in per kWh)
+    columns_to_divide = ["Spot price", "Up reg price", "Down reg price"]
+    prices_test_set[columns_to_divide] = prices_test_set[columns_to_divide] / 1000
+
+    optimal_bid_test, optimal_obj_test, real_revenue_test = optimization_validation(
+        best_prediction, prices_test_set, p_real_test, farm_capacity
+    )
+
+    # Print results
+    print(f"Test Set Optimal Objective: {optimal_obj_test}")
+    print(f"Test Set Real Revenue ({MLmodel}): {real_revenue_test}")
+
     return optimal_obj_val, real_revenue_val
 
-def optimization_validation(prediction, TIME, prices, p_real, farm_capacity):
+def optimization_validation(prediction, prices, p_real, farm_capacity):
+    # Time definition
+    TIME = range(len(prediction))
     
-    #just use the last 566 values
-    spot_price = prices['Spot price'].tail(len(prediction)).reset_index(drop=True)
-    UP_price = prices['Up reg price'].tail(len(prediction)).reset_index(drop=True)
-    DW_price = prices['Down reg price'].tail(len(prediction)).reset_index(drop=True)
-    
+    # just use the last 566 values
+    spot_price = prices["Spot price"]
+    UP_price = prices["Up reg price"]
+    DW_price = prices["Down reg price"]
+
     # Initialize optimization model
     model = gb.Model("optimization_model")
     model.Params.TimeLimit = 100
-    model.setParam("NonConvex", 2)
-    
+
     # Define variables
-    bid = {t: model.addVar(lb=0, ub=farm_capacity, name=f"Wind power bid at time {t}") for t in TIME}
-    delta_plus = {t: model.addVar(lb=0, ub=gb.GRB.INFINITY, name=f"Positive difference at time {t}") for t in TIME}
-    delta_minus = {t: model.addVar(lb=0, ub=gb.GRB.INFINITY, name=f"Negative difference at time {t}") for t in TIME}
-    
+    bid = {
+        t: model.addVar(lb=0, ub=farm_capacity, name=f"Wind power bid at time {t}")
+        for t in TIME
+    }
+    delta_plus = {
+        t: model.addVar(
+            lb=0, ub=gb.GRB.INFINITY, name=f"Positive difference at time {t}"
+        )
+        for t in TIME
+    }
+    delta_minus = {
+        t: model.addVar(
+            lb=0, ub=gb.GRB.INFINITY, name=f"Negative difference at time {t}"
+        )
+        for t in TIME
+    }
+
     # Define objective function
     DA_revenue = gb.quicksum(spot_price[t] * bid[t] for t in TIME)
     balancing_revenue = gb.quicksum(
         DW_price[t] * delta_plus[t] - UP_price[t] * delta_minus[t] for t in TIME
     )
     model.setObjective(DA_revenue + balancing_revenue, GRB.MAXIMIZE)
-    
+
     # Define constraints
     for t in TIME:
-        model.addConstr(prediction[t] - bid[t] == delta_plus[t] - delta_minus[t], name=f"Prediction constraint at {t}")
-    
+        model.addConstr(
+            max(0, prediction[t]) - bid[t] == delta_plus[t] - delta_minus[t],
+            name=f"Prediction constraint at {t}",
+        )
+
     # Optimize the model
     model.optimize()
-    
+
     # Extract optimal bids
     optimal_bid = {t: bid[t].x for t in TIME}
-    
+
     optimal_objective = model.ObjVal
-    
+
     # Plot results
     plt.figure(figsize=(10, 6))
-    TIME1 = range(100, 300)
-    plt.plot(TIME1, [prediction[t] for t in TIME1], label="Prediction", color="blue", marker="o")
-    plt.plot(TIME1, [optimal_bid[t] for t in TIME1], label="Optimal Bid", color="green", marker="x")
+    TIME1 = range(0,100)
+    plt.plot(
+        TIME1,
+        [prediction[t] for t in TIME1],
+        label="Prediction",
+        color="blue",
+        marker="o",
+    )
+    plt.plot(
+        TIME1,
+        [optimal_bid[t] for t in TIME1],
+        label="Optimal Bid",
+        color="green",
+        marker="x",
+    )
     plt.xlabel("Time (hours)")
     plt.ylabel("Power (kW)")
     plt.title("Optimal Bids vs Predictions Over Time")
     plt.legend()
     plt.grid(True)
     plt.show()
-    
+
     # Calculate balance, DW, and UP
     balance = {t: p_real[t] - optimal_bid[t] for t in TIME}
     DW = {t: max(balance[t], 0) for t in TIME}  # Downward regulation
@@ -519,10 +861,9 @@ def optimization_validation(prediction, TIME, prices, p_real, farm_capacity):
 
     # Calculate real DA and balancing revenue
     DA_revenue = sum(spot_price[t] * optimal_bid[t] for t in TIME)
-    balancing_revenue = sum(
-        DW_price[t] * DW[t] - UP_price[t] * UP[t] for t in TIME
-    )
-    return optimal_objective, DA_revenue+balancing_revenue
+    balancing_revenue = sum(DW_price[t] * DW[t] - UP_price[t] * UP[t] for t in TIME)
+
+    return optimal_bid, optimal_objective, DA_revenue + balancing_revenue
 
 def Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized):
         
@@ -783,7 +1124,7 @@ def Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized):
     plt.tight_layout()
     plt.show()
     
-    return y_pred_lasso, y_pred_ridge, y_pred_lasso_NLR, y_pred_ridge_NLR
+    return y_pred_lasso, y_pred_ridge, y_pred_lasso_NLR, y_pred_ridge_NLR, lasso_model
 
 def lasso_regularization(train_x, train_y, alpha):
     # Create and fit the Lasso regression model
@@ -1196,7 +1537,7 @@ if __name__ == "__main__":
     X_0, y_0, X_normalized, y_normalized = preprocessing_data(dataset)
    
     #Select model to run
-    model = 'Model 2'
+    model = 'Model 1'
 
     if model == 'Model 1':
         #This function uses a Linear Regression model to observe the error values RMSE, MAE
@@ -1209,7 +1550,7 @@ if __name__ == "__main__":
         y_pred_best, X_normalized_NLR, X_0_NLR = Step4_NonLinear(X_normalized, y_normalized, X_0)
         
         #This function contains the Lasso and Ridge regularisation for the Linear and Non linear models
-        y_pred_lasso,y_pred_ridge,y_pred_lasso_NLR,y_pred_ridge_NLR = Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized)
+        y_pred_lasso,y_pred_ridge,y_pred_lasso_NLR,y_pred_ridge_NLR, lasso_model = Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized)
         
         #This function runs the Gurobi Optimizer for the Optimisation problem for different ML models
         prediction_model = {"gradient_descent": y_pred_gd, 'closed_form': y_pred_closed, 'non_linear_model': y_pred_best
@@ -1219,7 +1560,7 @@ if __name__ == "__main__":
         #select ML model for validation
         MLmodel = "non_linear_L2"
         
-        optimal_obj_val, real_revenue_val = Step6_Gurobi_Validation(dataset, prices, prediction_model[MLmodel], MLmodel)
+        optimal_obj_val, real_revenue_val = Step6_Gurobi_Validation(dataset, prices, prediction_model[MLmodel], MLmodel, lasso_model)
 
         #This function contains the K-Means Cluster model
         Step7_kmeansCluster(X_normalized, y_normalized)
@@ -1227,8 +1568,8 @@ if __name__ == "__main__":
     if model == 'Model 2':
         
         X_normalized_model_2, y_normalized_model_2 = M2_Step1(prices, dataset)
-        y_pred_class_best = M2_Step2(X_normalized_model_2, y_normalized_model_2)
-    
+        y_pred_class_best, X_train_class, y_test_class, best_model = M2_Step2(X_normalized_model_2, y_normalized_model_2)
+        M2_step3(y_pred_class_best, X_train_class, y_test_class, best_model)
     
     
     
