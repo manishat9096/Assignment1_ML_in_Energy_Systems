@@ -12,14 +12,17 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import random
 import os
+from sklearn.preprocessing import MinMaxScaler
 
 from Step_3_Final import y_pred_gd, y_pred_closed
-from Step_4_Final import y_pred_best  # NON linear
+from Step_4_Final import y_pred_best  # Locally weighted square
+from Step_4_Final import y_pred_closed as y_pred_closed_NLR
 from Step_5_Final import (
     y_pred_lasso,
     y_pred_ridge,
     y_pred_lasso_NLR,
     y_pred_ridge_NLR,
+    lasso_model
 )  # NON linear
 
 
@@ -27,7 +30,8 @@ from Step_5_Final import (
 prediction_model = {
     "gradient_descent": y_pred_gd,
     "closed_form": y_pred_closed,
-    "non_linear_model": y_pred_best,
+    "closed_form_NLR": y_pred_closed_NLR,
+    "local_weighted": y_pred_best,
     "Linear_L1": y_pred_lasso,
     "Linear_L2": y_pred_ridge,
     "non_linear_L1": y_pred_lasso_NLR,
@@ -81,7 +85,7 @@ def optimization_validation(prediction, prices, p_real):
     # Define constraints
     for t in TIME:
         model.addConstr(
-            prediction[t] - bid[t] == delta_plus[t] - delta_minus[t],
+            max(0, prediction[t]) - bid[t] == delta_plus[t] - delta_minus[t],
             name=f"Prediction constraint at {t}",
         )
 
@@ -95,7 +99,7 @@ def optimization_validation(prediction, prices, p_real):
 
     # Plot results
     plt.figure(figsize=(10, 6))
-    TIME1 = range(100, 300)
+    TIME1 = range(0,100)
     plt.plot(
         TIME1,
         [prediction[t] for t in TIME1],
@@ -126,7 +130,7 @@ def optimization_validation(prediction, prices, p_real):
     DA_revenue = sum(spot_price[t] * optimal_bid[t] for t in TIME)
     balancing_revenue = sum(DW_price[t] * DW[t] - UP_price[t] * UP[t] for t in TIME)
 
-    return optimal_objective, DA_revenue + balancing_revenue
+    return optimal_bid, optimal_objective, DA_revenue + balancing_revenue
 
 
 ################################# Validation #################################
@@ -136,14 +140,15 @@ dataset = pd.read_csv("../Datasets/Cumulative_dataset.csv")
 
 # Reverting normalization
 prediction1 = prediction_model[MLmodel]
+#prediction = np.full(556, 0)
 y_0 = -dataset["kalby_active_power"]
 y_max = max(y_0)
 y_min = min(y_0)
 prediction = prediction1 * (y_max - y_min) + y_min
-
+#prediction = prediction[-24:]
 # Calculate actual revenue (real power production)
 p_real_val = -(
-    dataset["kalby_active_power"].tail(len(prediction1)).reset_index(drop=True)
+    dataset["kalby_active_power"].tail(len(prediction)).reset_index(drop=True)
 )
 
 # Import price data (validation set)
@@ -163,8 +168,8 @@ prices_val_set[columns_to_divide] = prices_val_set[columns_to_divide] / 1000
 # Only keep the validation set
 prices_val_final = prices_val_set.tail(len(prediction)).reset_index(drop=True)
 
-optimal_obj_val, real_revenue_val = optimization_validation(
-    prediction, prices_val_set, p_real_val
+optimal_bid_val, optimal_obj_val, real_revenue_val = optimization_validation(
+    prediction, prices_val_final, p_real_val
 )
 
 # Print results
@@ -173,15 +178,33 @@ print(f"Validation Set Real Revenue ({MLmodel}): {real_revenue_val}")
 
 
 ################################### Test ####################################
+# Best model for Step 6
+chosen_model = "Linear_L1"
+
 # Import actual power production (test set)
 dataset_test = pd.read_csv("../Datasets/Cumulative_dataset_test.csv")
 
-# Reverting normalization
-chosen_model = "non_linear_L2"
-best_prediction1 = prediction_model[chosen_model]  ### to change
-y_0 = -dataset_test["kalby_active_power"]
+X_0 = dataset_test[['prev_day_power', '50thQuantile', '5thQuantile',
+       '90thQuantile', 'Hour_5thQuantile', 'Hour_50thQuantile',
+       'Hour_90thQuantile', 'mean_wind_speed', 'mean_wind_dirn',
+       'mean_humidity', 'fr_wind_dirn', 'fr_accum_precip', 'fr_mean_humidity',
+       'fr_wind_speed']]
+
+y_0 = -dataset_test['kalby_active_power']
+
+## Fit and transform the selected columns
+scaler = MinMaxScaler()
+
+X_normalized = scaler.fit_transform(X_0)
+X_normalized = pd.DataFrame(X_normalized, columns=X_0.columns)
+
 y_max = max(y_0)
 y_min = min(y_0)
+y_normalized = (y_0 - y_min) / (y_max - y_min)
+
+## Retrieve model
+best_prediction1 = lasso_model.predict(X_normalized)
+
 best_prediction = best_prediction1 * (y_max - y_min) + y_min
 
 # Calculate actual revenue (real power production)
@@ -191,12 +214,19 @@ p_real_test = -(
 
 # Import price data (test set)
 prices_test_set = pd.read_excel("../Datasets/prices_test_set.xlsx")
+prices_test_set = prices_test_set.rename(
+    columns={
+        "SpotPriceEUR": "Spot price",
+        "BalancingPowerPriceUpEUR": "Up reg price",
+        "BalancingPowerPriceDownEUR": "Down reg price",
+    }
+)
 
 # Now divide the specified columns by 1000(in per kWh)
 columns_to_divide = ["Spot price", "Up reg price", "Down reg price"]
 prices_test_set[columns_to_divide] = prices_test_set[columns_to_divide] / 1000
 
-optimal_obj_test, real_revenue_test = optimization_validation(
+optimal_bid_test, optimal_obj_test, real_revenue_test = optimization_validation(
     best_prediction, prices_test_set, p_real_test
 )
 
