@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-#all steps are merged into function in this file
+#all steps are merged into functions in this file
 
 def M2_Step2(X_normalized_model_2, y_normalized_model_2):
     #here we test different ML models that gives the least error.
@@ -200,7 +200,7 @@ def M2_Step1(prices, dataset):
         columns={
             "SpotPriceEUR": "Spot price",
             "BalancingPowerPriceUpEUR": "Up reg price",
-            "BalancingPowerPriceDownEgUR": "Down reg price",
+            "BalancingPowerPriceDownEUR": "Down reg price",
             "HourDK" : "Timestamp"
         }
     )
@@ -209,6 +209,7 @@ def M2_Step1(prices, dataset):
 
     windfarm_capacity = 6000 # kW
 
+    scaler = MinMaxScaler()
     # Define gurobi model
     model = gb.Model("optimization_model")
 
@@ -297,16 +298,9 @@ def M2_Step1(prices, dataset):
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
     plt.tight_layout()
-    file_path = 'Figures/Step_1_model_2_bids.png'
-    plt.savefig(file_path)
+    plt.savefig(os.path.join(figures_dir, 'Step_1_model_2_bids.png'), format='png')
     plt.show()
 
-
-    # X_0_model_2 = dataset[['50thQuantile', '5thQuantile',
-    #         '90thQuantile', 'Hour_5thQuantile', 'Hour_50thQuantile',
-    #         'Hour_90thQuantile', 'mean_wind_speed', 'mean_wind_dirn',
-    #         'mean_humidity', 'fr_wind_dirn', 'fr_accum_precip', 'fr_mean_humidity',
-    #         'fr_wind_speed']].join(prices, how='inner') 
 
     X_0_model_2 =  dataset[['fr_wind_speed']].join(prices, how='inner')
     X_0_model_2.drop(columns=['fr_wind_speed'], inplace=True)
@@ -316,7 +310,7 @@ def M2_Step1(prices, dataset):
             0: "Optimal_Bid"
             }
         )
-
+    
     X_normalized_model_2 = scaler.fit_transform(X_0_model_2)
     X_normalized_model_2 = pd.DataFrame(X_normalized_model_2, columns=X_0_model_2.columns)
 
@@ -1194,20 +1188,30 @@ def read_data():
  
 
 if __name__ == "__main__":
+    # The dataset Bornholm Wind Data, DMI weather data and Norwegian Forecast data is merged together into 'dataset' variable.
+    # The dataset Energinet prices is loaded into the variable 'prices'
     dataset, correlation, prices = read_data()
+
+    # The dataset is divided to input X and output Y set and normalised using MinMaxScaler()
     X_0, y_0, X_normalized, y_normalized = preprocessing_data(dataset)
    
+    #Select model to run
     model = 'Model 2'
 
     if model == 'Model 1':
+        #This function uses a Linear Regression model to observe the error values RMSE, MAE
         Step2_LinearRegression(X_normalized, y_normalized)
         
+        # This function contains the Gradient descent and Closed form Linear regression models
         y_pred_gd, y_pred_closed = Step3_GD_Closed_form(X_normalized, y_normalized)
         
+        #This function contains the Non Linear closed form and weighted least squares model
         y_pred_best, X_normalized_NLR, X_0_NLR = Step4_NonLinear(X_normalized, y_normalized, X_0)
         
+        #This function contains the Lasso and Ridge regularisation for the Linear and Non linear models
         y_pred_lasso,y_pred_ridge,y_pred_lasso_NLR,y_pred_ridge_NLR = Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized)
         
+        #This function runs the Gurobi Optimizer for the Optimisation problem for different ML models
         prediction_model = {"gradient_descent": y_pred_gd, 'closed_form': y_pred_closed, 'non_linear_model': y_pred_best
                             , 'Linear_L1': y_pred_lasso, 'Linear_L2': y_pred_ridge, 'non_linear_L1': y_pred_lasso_NLR, 
                             'non_linear_L2': y_pred_ridge_NLR}
@@ -1216,58 +1220,14 @@ if __name__ == "__main__":
         MLmodel = "non_linear_L2"
         
         optimal_obj_val, real_revenue_val = Step6_Gurobi_Validation(dataset, prices, prediction_model[MLmodel], MLmodel)
-    
+
+        #This function contains the K-Means Cluster model
         Step7_kmeansCluster(X_normalized, y_normalized)
     
     if model == 'Model 2':
         
         X_normalized_model_2, y_normalized_model_2 = M2_Step1(prices, dataset)
         y_pred_class_best = M2_Step2(X_normalized_model_2, y_normalized_model_2)
-        
-    # model = 'Model 1'
-    
-    # # if steps selection needed
-    
-    # selected_step = 5
-    
-    # if model == "Model 1":
-    #     if selected_step == 2:
-    #         print("Step 2: Linear Regression")
-    #         Step2_LinearRegression(X_normalized, y_normalized)
-
-    #     if selected_step == 3:
-    #         print("Running Step 3: Gradient Descent and Closed Form")
-    #         y_pred_gd, y_pred_closed = Step3_GD_Closed_form(X_normalized, y_normalized)
-
-    #     if selected_step == 4:
-    #         print("Running Step 4: Non-Linear Regression")
-    #         y_pred_best, X_normalized_NLR, X_0_NLR = Step4_NonLinear(X_normalized, y_normalized, X_0)
-
-    #     if selected_step == 5:
-    #         y_pred_best, X_normalized_NLR, X_0_NLR = Step4_NonLinear(X_normalized, y_normalized, X_0)
-    #         print("Running Step 5: Regularisation")
-    #         y_pred_lasso, y_pred_ridge, y_pred_lasso_NLR, y_pred_ridge_NLR = Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized)
-
-    #     if selected_step == 6:
-    #         y_pred_gd, y_pred_closed = Step3_GD_Closed_form(X_normalized, y_normalized)
-    #         y_pred_best, X_normalized_NLR, X_0_NLR = Step4_NonLinear(X_normalized, y_normalized, X_0)
-    #         y_pred_lasso, y_pred_ridge, y_pred_lasso_NLR, y_pred_ridge_NLR = Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized)
-    #         print("Running Step 6: Gurobi Validation")
-    #         prediction_model = {"gradient_descent": y_pred_gd, 'closed_form': y_pred_closed, 'non_linear_model': y_pred_best
-    #                             , 'Linear_L1': y_pred_lasso, 'Linear_L2': y_pred_ridge, 'non_linear_L1': y_pred_lasso_NLR, 
-    #                             'non_linear_L2': y_pred_ridge_NLR}
-    #         #select ML model for validation
-    #         MLmodel = "non_linear_L2"
-            
-    #         optimal_obj_val, real_revenue_val = Step6_Gurobi_Validation(dataset, prices, prediction_model[MLmodel], MLmodel)
-
-    #     if selected_step == 7:
-    #         print("Running Step 7: K-means Clustering")
-    #         Step7_kmeansCluster(X_normalized, y_normalized)
-    
-    
-    
-    
     
     
     
