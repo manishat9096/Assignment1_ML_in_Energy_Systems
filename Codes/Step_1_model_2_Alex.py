@@ -4,8 +4,11 @@ import gurobipy as gb
 from gurobipy import GRB
 import random
 
+
 # Import price data
 prices1 = pd.read_excel("prices.xlsx")
+
+
 prices = prices1.rename(
     columns={
         "SpotPriceEUR": "Spot price",
@@ -113,14 +116,14 @@ file_path = 'Figures/Step_1_model_2_bids.png'
 plt.show()
 
 
-# X_0_model_2 = dataset[['50thQuantile', '5thQuantile',
-#         '90thQuantile', 'Hour_5thQuantile', 'Hour_50thQuantile',
-#         'Hour_90thQuantile', 'mean_wind_speed', 'mean_wind_dirn',
-#         'mean_humidity', 'fr_wind_dirn', 'fr_accum_precip', 'fr_mean_humidity',
-#         'fr_wind_speed']].join(prices, how='inner') 
+X_0_model_2 = dataset[['50thQuantile', '5thQuantile',
+         '90thQuantile', 'Hour_5thQuantile', 'Hour_50thQuantile',
+         'Hour_90thQuantile', 'mean_wind_speed', 'mean_wind_dirn',
+         'mean_humidity', 'fr_wind_dirn', 'fr_accum_precip', 'fr_mean_humidity',
+         'fr_wind_speed']].join(prices, how='inner')
 
-X_0_model_2 =  dataset[['fr_wind_speed']].join(prices, how='inner')
-X_0_model_2.drop(columns=['fr_wind_speed'], inplace=True)
+#X_0_model_2 =  dataset[['fr_wind_speed']].join(prices, how='inner')
+#X_0_model_2.drop(columns=['fr_wind_speed'], inplace=True)
 
 y_0_model_2 = pd.DataFrame(optimal_bid_values, y_0.index).rename(
     columns={
