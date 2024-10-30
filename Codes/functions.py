@@ -7,6 +7,7 @@ Created on Fri Oct 25 19:00:11 2024
 
 import pandas as pd
 import numpy as np
+import random
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
@@ -22,7 +23,300 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-#all steps are merged into function in this file
+#all steps are merged into functions in this file
+
+def M2_Step2(X_normalized_model_2, y_normalized_model_2):
+    #here we test different ML models that gives the least error.
+    
+    # print("Step 2 - model 2 - Linear Regression")
+    # ## Closed form 
+    # theta_closed = np.dot(np.linalg.inv(np.dot(X_train.T, X_train)), np.dot(X_train.T, y_train))
+    # y_pred_closed = np.dot(X_test, theta_closed)
+    # mse_closed = mean_squared_error(y_test, y_pred_closed)
+    # rmse_closed = np.sqrt(mse_closed)
+    # print(f"Test RMSE w/ closed form: {rmse_closed:0.10f}")
+    # mae_closed = mean_absolute_error(y_test, y_pred_closed)
+    # print(f"Test MAE w/ closed form: {mae_closed:0.10f}")
+
+
+    # print("Step 2 - model 2 - Non Linear Regression")
+
+    # ## Data Prep NLR
+    # X_0_model_2_NLR = X_0_model_2.copy() 
+    # X_0_model_2_NLR['mean_wind_speed_r_squared'] = X_0_model_2_NLR['mean_wind_speed']**(0.5)
+    # X_0_model_2_NLR['mean_wind_speed_squared'] = X_0_model_2_NLR['mean_wind_speed']**2
+    # X_0_model_2_NLR['mean_wind_speed_cubed'] = X_0_model_2_NLR['mean_wind_speed']**3
+
+    # X_0_model_2_NLR['fr_mean_wind_speed_r_squared'] = X_0_model_2_NLR['fr_wind_speed']**(0.5)
+    # X_0_model_2_NLR['fr_wind_speed_squared'] = X_0_model_2_NLR['fr_wind_speed']**2
+    # X_0_model_2_NLR['fr_wind_speed_cubed'] = X_0_model_2_NLR['fr_wind_speed']**3
+
+    # X_0_model_2_NLR['5thQuantile_exp'] = np.exp(X_0_model_2_NLR['5thQuantile']/1000)
+    # X_0_model_2_NLR['Hour_5thQuantile_exp'] = np.exp(X_0_model_2_NLR['Hour_5thQuantile']/1000)
+    # X_0_model_2_NLR['90thQuantile_-exp'] = np.exp(-X_0_model_2_NLR['90thQuantile']/100)
+    # X_0_model_2_NLR['Hour_90thQuantile_-exp'] = np.exp(-X_0_model_2_NLR['Hour_90thQuantile']/100)
+     
+    # X_0_model_2_NLR['Spot price_squared'] = X_0_model_2_NLR['Spot price']**2
+    # X_0_model_2_NLR['Up reg price_squared'] = X_0_model_2_NLR['Up reg price']**2
+    # X_0_model_2_NLR['Down reg price_squared'] = X_0_model_2_NLR['Down reg price']**2
+    # X_0_model_2_NLR['Spot price_cubed'] = X_0_model_2_NLR['Spot price']**3
+    # X_0_model_2_NLR['Up reg price_cubed'] = X_0_model_2_NLR['Up reg price']**3
+    # X_0_model_2_NLR['Down reg price_cubed'] = X_0_model_2_NLR['Down reg price']**3
+
+    # scaler = MinMaxScaler()
+
+    # # Fit and transform the selected columns
+    # X_normalized_NLR = scaler.fit_transform(X_0_model_2_NLR)
+    # X_normalized_NLR = pd.DataFrame(X_normalized_NLR, columns=X_0_model_2_NLR.columns)
+
+    # X_train_NLR, X_test_NLR, y_train_NLR, y_test_NLR = train_test_split(X_normalized_NLR, y_normalized_model_2, test_size=0.2, shuffle=False)
+
+    # ## Closed form 
+    # theta_closed_NLR = np.dot(np.linalg.inv(np.dot(X_train_NLR.T, X_train_NLR)), np.dot(X_train_NLR.T, y_train_NLR))
+    # y_pred_closed_NLR = np.dot(X_test_NLR, theta_closed_NLR)
+    # mse_closed_NLR = mean_squared_error(y_test_NLR, y_pred_closed_NLR)
+    # rmse_closed_NLR = np.sqrt(mse_closed_NLR)
+    # print(f"Test RMSE w/ closed form NLR: {rmse_closed_NLR:0.10f}")
+    # mae_closed_NLR = mean_absolute_error(y_test_NLR, y_pred_closed_NLR)
+    # print(f"Test MAE w/ closed form NLR {mae_closed_NLR:0.10f}")
+
+    # ## Locally weighted 
+    # print("Step 2 - model 2 - Locally Weighted Regression")
+
+    # def gaussian(t):
+    #     return np.exp(-0.5 * t**2) / np.sqrt(2 * np.pi)
+
+    # def weighted_least_squares(X_query, X_WLS, y_WLS, radius):
+    #     y_pred_wls = np.zeros(len(X_query))
+    #     for i in range(len(X_query)):
+    #         W = np.diagflat(gaussian(np.linalg.norm(X_WLS - X_query.iloc[i], axis=1) / radius))
+    #         theta = np.dot(np.linalg.inv(np.dot(X_WLS.T, np.dot(W, X_WLS))), np.dot(X_WLS.T, np.dot(W, y_WLS)))
+    #         y_pred_wls[i] = np.dot(X_query.iloc[i], theta)
+    #     return y_pred_wls
+
+
+    # # # Radius sensitivity analysis
+
+    # # X_WLS = X_train
+    # # X_query = X_test
+    # # y_WLS = y_train
+    # # y_comp = y_test
+
+
+    # # radius_values = np.linspace(0.15, 0.5, 10)
+    # # rmse_values = []
+
+    # # for radius in radius_values:
+    # #     y_pred = weighted_least_squares(X_query, X_WLS, y_WLS, radius)
+    # #     rmse_values.append(np.sqrt(mean_squared_error(y_comp, y_pred)))
+        
+    # # plt.figure(figsize=(14, 7), dpi = 300)
+    # # plt.plot(radius_values, rmse_values, label='RMSE vs Radius', color='b', linestyle='-', marker='o', markersize=5, linewidth=1.5)
+    # # plt.title('RMSE vs. Radius', fontsize=16)
+    # # plt.xlabel('Radius', fontsize=14)
+    # # plt.ylabel('RMSE', fontsize=14)
+    # # plt.grid(True, which='both', linestyle='--', linewidth=0.5)
+    # # plt.legend(loc='best', fontsize=12)
+    # # plt.tight_layout()
+    # # file_path = 'Figures/Step_2_model_2_radius_WLR.png'
+    # # plt.savefig(file_path)
+
+    # # plt.show()
+
+    # # best_radius = radius_values[np.argmin(rmse_values)]
+    # best_radius = 0.3055555555555556
+
+    # X_WLS = X_train
+    # X_query = X_test
+    # y_WLS = y_train
+    # y_comp = y_test
+
+    # y_pred_best = weighted_least_squares(X_query, X_WLS, y_WLS, best_radius)
+
+    # mse_LWLS = mean_squared_error(y_comp, y_pred_best)
+    # rmse_LWLS = np.sqrt(mse_LWLS)
+    # print(f"Test RMSE w/ LWLS: {rmse_LWLS:0.10f}")
+    # mae_nlr = mean_absolute_error(y_comp, y_pred_best)
+    # print(f"Test MAE w/ LWLS: {mae_nlr:0.10f}")
+
+    # # Split the data
+    X_train, X_test, y_train, y_test = train_test_split(X_normalized_model_2, y_normalized_model_2, test_size=0.2, shuffle=False)
+
+     
+    ## K-Nearest
+    print("Step 2 - model 2 - K-Nearest")
+    from sklearn.neighbors import KNeighborsClassifier
+
+    # Split the data 
+    y_normalized_model_2_class = np.round(y_normalized_model_2)
+    # y_normalized_model_2_class = y_normalized_model_2
+    X_train_class, X_test_class, y_train_class, y_test_class = train_test_split(X_normalized_model_2, y_normalized_model_2_class, test_size=0.2, shuffle=False)
+
+    # Convert X_train and X_test to NumPy arrays if they are pandas DataFrames
+    X_train_class = X_train_class.values if hasattr(X_train_class, 'values') else X_train_class
+    X_test_class = X_test_class.values if hasattr(X_test_class, 'values') else X_test_class
+
+    # Convert y_train and y_test to NumPy arrays and then apply ravel()
+    y_train_class = y_train_class.values.ravel() if hasattr(y_train_class, 'values') else y_train_class.ravel()
+    y_test_class = y_test_class.values.ravel() if hasattr(y_test_class, 'values') else y_test_class.ravel()
+
+
+    X_train_val_class, X_test_val_class, y_train_val_class, y_test_val_class = train_test_split(X_train_class, y_train_class, test_size=0.2, shuffle=False)
+
+
+    best_k = 0
+    error_best_k_rmse = 1
+    best_model = 0
+    for k in range(1,50):
+        
+        knn = KNeighborsClassifier(n_neighbors=k)
+        knn.fit(X_train_val_class, y_train_val_class)
+        y_pred_class = knn.predict(X_test_val_class)
+        
+        # Evaluate the model
+        mse_class = mean_squared_error(y_test_val_class, y_pred_class)
+        rmse_class = np.sqrt(mse_class)
+        mae_class = mean_absolute_error(y_test_val_class, y_pred_class)
+        
+        if rmse_class < error_best_k_rmse:
+            error_best_k_rmse = rmse_class
+            best_k = k 
+            best_model = knn
+
+    print(f"Best Neighbour number: {best_k}")
+    y_pred_class_best = best_model.predict(X_test_class)
+    # Evaluate the model
+    mse_class = mean_squared_error(y_test, y_pred_class_best)
+    rmse_class = np.sqrt(mse_class)
+    mae_class = mean_absolute_error(y_test, y_pred_class_best)
+    print(f"Test RMSE w/ class: {rmse_class:0.10f}")
+    print(f"Test MAE w/ class: {mae_class:0.10f}")
+
+    return y_pred_class_best
+
+def M2_Step1(prices, dataset):
+    print('Model 2 Step 1')
+    prices = prices.rename(
+        columns={
+            "SpotPriceEUR": "Spot price",
+            "BalancingPowerPriceUpEUR": "Up reg price",
+            "BalancingPowerPriceDownEUR": "Down reg price",
+            "HourDK" : "Timestamp"
+        }
+    )
+    prices.drop(columns=['HourUTC', 'PriceArea', 'ImbalanceMWh', 'ImbalancePriceEUR'], inplace=True)
+    prices.set_index('Timestamp', inplace=True)
+
+    windfarm_capacity = 6000 # kW
+
+    scaler = MinMaxScaler()
+    # Define gurobi model
+    model = gb.Model("optimization_model")
+
+    # Set time limit
+    model.Params.TimeLimit = 100
+
+    # Add variables
+    # Wind power bid at time t
+    bid = {
+        t: model.addVar(
+            lb=0,
+            ub=windfarm_capacity,
+            name="Wind power bid at time {0}".format(t),
+        )
+        for t in y_0.index
+    }
+
+    # Difference between prediction and wind power bid (positive part)
+    delta_plus = {
+        t: model.addVar(
+            lb=0,
+            ub=gb.GRB.INFINITY,
+            name="Positive part of the difference between prediction and bid at time {0}".format(
+                t
+            ),
+        )
+        for t in y_0.index
+    }
+
+    # Difference between prediction and wind power bid (negative part)
+    delta_minus = {
+        t: model.addVar(
+            lb=0,
+            ub=gb.GRB.INFINITY,
+            name="Negative part of the difference between prediction and bid at time {0}".format(
+                t
+            ),
+        )
+        for t in y_0.index
+    }
+
+    # Set objective function
+    DA_revenue = gb.quicksum(prices["Spot price"][t] * bid[t] for t in y_0.index)
+    balancing_revenue = gb.quicksum(
+        prices["Down reg price"][t] * delta_plus[t]
+        - prices["Up reg price"][t] * delta_minus[t]
+        for t in y_0.index
+    )
+
+    model.setObjective(DA_revenue + balancing_revenue, GRB.MAXIMIZE)
+
+    difference_constraint = {
+        t: model.addConstr(
+            y_0[t] - bid[t],
+            gb.GRB.EQUAL,
+            delta_plus[t] - delta_minus[t],
+            name="Difference between prediction and bid at time {0}".format(t),
+        )
+        for t in y_0.index
+    }
+
+    model.optimize()
+
+    print("Objective function", model.ObjVal)
+
+    optimal_bid = {}
+    for t in y_0.index:
+        optimal_bid[t] = bid[t].x
+
+    # Plotting the results
+    plt.figure(figsize=(14, 7), dpi = 300)
+
+    # Plot the predictions
+    plt.plot(y_0.index, y_0, color='red', linestyle='--', label='Actual Values', linewidth=1)
+
+    # Plot the optimal bids
+    optimal_bid_values = [optimal_bid[t] for t in y_0.index]
+    plt.scatter(y_0.index, optimal_bid_values, color='blue', alpha=0.6, label='Optimal Bids', s=50)
+
+    # Add labels and title
+    plt.xlabel("Time (hours)", fontsize=14)  
+    plt.ylabel("Power (MW)", fontsize=14)  
+    plt.title("Optimal Bids vs Actual Values Over Time", fontsize=16)
+    plt.legend(fontsize=12)
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.xticks(fontsize=12)
+    plt.yticks(fontsize=12)
+    plt.tight_layout()
+    plt.savefig(os.path.join(figures_dir, 'Step_1_model_2_bids.png'), format='png')
+    plt.show()
+
+
+    X_0_model_2 =  dataset[['fr_wind_speed']].join(prices, how='inner')
+    X_0_model_2.drop(columns=['fr_wind_speed'], inplace=True)
+
+    y_0_model_2 = pd.DataFrame(optimal_bid_values, y_0.index).rename(
+        columns={
+            0: "Optimal_Bid"
+            }
+        )
+    
+    X_normalized_model_2 = scaler.fit_transform(X_0_model_2)
+    X_normalized_model_2 = pd.DataFrame(X_normalized_model_2, columns=X_0_model_2.columns)
+
+    y_normalized_model_2 = scaler.fit_transform(y_0_model_2)
+    y_normalized_model_2 = pd.DataFrame(y_normalized_model_2, columns=y_0_model_2.columns)
+    return X_normalized_model_2, y_normalized_model_2
 
 def Step7_kmeansCluster(X_normalized, y_normalized):
     # Split the data into training and test sets
@@ -69,11 +363,11 @@ def Step7_kmeansCluster(X_normalized, y_normalized):
     best_pred = 0
 
     for comb in combinations:
-        print(f"Evaluating combination: {comb}")
+        # print(f"Evaluating combination: {comb}")
         mse = evaluate_combination(comb, X_train_cluster, y_train_cluster, X_test_cluster, y_test_cluster, y_test, N_clusters)[0]
         pred = evaluate_combination(comb, X_train_cluster, y_train_cluster, X_test_cluster, y_test_cluster, y_test, N_clusters)[1]
         rmse_k_means = np.sqrt(mse)
-        print(f"Test RMSE w/ K-Means: {rmse_k_means:0.10f}")
+        # print(f"Test RMSE w/ K-Means: {rmse_k_means:0.10f}")
         
         if rmse_k_means < best_rmse:
             best_rmse = rmse_k_means
@@ -269,7 +563,7 @@ def Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized):
         mse = mean_squared_error(y_val, y_pred_lasso)
         rmse = np.sqrt(mse)
         rmse_list_Lasso.append(rmse)
-        print(f"Validation RMSE w/ Lasso regularization for alpha={alpha:0.10f}: {rmse:0.10f}")
+        # print(f"Validation RMSE w/ Lasso regularization for alpha={alpha:0.10f}: {rmse:0.10f}")
         mae = mean_absolute_error(y_val, y_pred_lasso)
         mae_list_Lasso.append(mae)
     
@@ -305,7 +599,7 @@ def Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized):
         mse = mean_squared_error(y_val_NLR, y_pred_lasso_NLR)
         rmse = np.sqrt(mse)
         rmse_list_Lasso_NLR.append(rmse)
-        print(f"Validation RMSE w/ for non linear dataset Lasso regularization for alpha={alpha:0.10f}: {rmse:0.10f}")
+        # print(f"Validation RMSE w/ for non linear dataset Lasso regularization for alpha={alpha:0.10f}: {rmse:0.10f}")
         mae = mean_absolute_error(y_val_NLR, y_pred_lasso_NLR)
         mae_list_Lasso_NLR.append(mae)
     
@@ -313,7 +607,7 @@ def Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized):
             best_rmse = rmse
             best_alpha = alpha
     
-    print("Best rmse for alpha = ", best_alpha)
+    print("Best rmse for alpha  for NLR dataset= ", best_alpha)
     
     ## Train model for the best alpha
     lasso_model_NLR = lasso_regularization(X_train_NLR_1, y_train_NLR_1, best_alpha)
@@ -321,9 +615,9 @@ def Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized):
     
     mse_lasso_NLR = mean_squared_error(y_test_NLR, y_pred_lasso_NLR)
     rmse_lasso_NLR = np.sqrt(mse_lasso_NLR)
-    print(f"Test RMSE w/ Lasso regularization: {rmse_lasso_NLR:0.10f}")
+    print(f"Test RMSE w/ Lasso regularization for NLR dataset: {rmse_lasso_NLR:0.10f}")
     mae_lasso_NLR = mean_absolute_error(y_test_NLR, y_pred_lasso_NLR)
-    print(f"Test MAE w/ Lasso regularization: {mae_lasso_NLR:0.10f}")
+    print(f"Test MAE w/ Lasso regularization for NLR dataset: {mae_lasso_NLR:0.10f}")
     
     
     
@@ -341,7 +635,7 @@ def Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized):
     
         mse = mean_squared_error(y_val, y_pred_ridge)
         rmse = np.sqrt(mse)
-        print(f"Validation RMSE w/ Ridge regularization for alpha={alpha:0.10f}: {rmse:0.10f}")
+        # print(f"Validation RMSE w/ Ridge regularization for alpha={alpha:0.10f}: {rmse:0.10f}")
         rmse_list_Ridge.append(rmse)
         mae = mean_absolute_error(y_val, y_pred_ridge)
         mae_list_Ridge.append(mae)
@@ -376,7 +670,7 @@ def Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized):
     
         mse_NLR = mean_squared_error(y_val_NLR, y_pred_ridge_NLR)
         rmse_NLR = np.sqrt(mse_NLR)
-        print(f"Validation RMSE w/ Ridge regularization for non-linear dataset for alpha={alpha:0.10f}: {rmse_NLR:0.10f}")
+        # print(f"Validation RMSE w/ Ridge regularization for non-linear dataset for alpha={alpha:0.10f}: {rmse_NLR:0.10f}")
         rmse_list_Ridge_NLR.append(rmse)
         mae = mean_absolute_error(y_val_NLR, y_pred_ridge_NLR)
         mae_list_Ridge_NLR.append(mae)
@@ -894,20 +1188,30 @@ def read_data():
  
 
 if __name__ == "__main__":
+    # The dataset Bornholm Wind Data, DMI weather data and Norwegian Forecast data is merged together into 'dataset' variable.
+    # The dataset Energinet prices is loaded into the variable 'prices'
     dataset, correlation, prices = read_data()
+
+    # The dataset is divided to input X and output Y set and normalised using MinMaxScaler()
     X_0, y_0, X_normalized, y_normalized = preprocessing_data(dataset)
    
-    model = 'Model 1'
+    #Select model to run
+    model = 'Model 2'
 
     if model == 'Model 1':
+        #This function uses a Linear Regression model to observe the error values RMSE, MAE
         Step2_LinearRegression(X_normalized, y_normalized)
         
+        # This function contains the Gradient descent and Closed form Linear regression models
         y_pred_gd, y_pred_closed = Step3_GD_Closed_form(X_normalized, y_normalized)
         
+        #This function contains the Non Linear closed form and weighted least squares model
         y_pred_best, X_normalized_NLR, X_0_NLR = Step4_NonLinear(X_normalized, y_normalized, X_0)
         
+        #This function contains the Lasso and Ridge regularisation for the Linear and Non linear models
         y_pred_lasso,y_pred_ridge,y_pred_lasso_NLR,y_pred_ridge_NLR = Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized)
         
+        #This function runs the Gurobi Optimizer for the Optimisation problem for different ML models
         prediction_model = {"gradient_descent": y_pred_gd, 'closed_form': y_pred_closed, 'non_linear_model': y_pred_best
                             , 'Linear_L1': y_pred_lasso, 'Linear_L2': y_pred_ridge, 'non_linear_L1': y_pred_lasso_NLR, 
                             'non_linear_L2': y_pred_ridge_NLR}
@@ -916,52 +1220,14 @@ if __name__ == "__main__":
         MLmodel = "non_linear_L2"
         
         optimal_obj_val, real_revenue_val = Step6_Gurobi_Validation(dataset, prices, prediction_model[MLmodel], MLmodel)
-    
+
+        #This function contains the K-Means Cluster model
         Step7_kmeansCluster(X_normalized, y_normalized)
     
-    
-    # if steps selection needed
-    
-    # selected_step = 6
-    
-    # if model == "Model 1":
-    #     if selected_step == 2:
-    #         print("Step 2: Linear Regression")
-    #         Step2_LinearRegression(X_normalized, y_normalized)
-
-    #     if selected_step == 3:
-    #         print("Running Step 3: Gradient Descent and Closed Form")
-    #         y_pred_gd, y_pred_closed = Step3_GD_Closed_form(X_normalized, y_normalized)
-
-    #     if selected_step == 4:
-    #         print("Running Step 4: Non-Linear Regression")
-    #         y_pred_best, X_normalized_NLR, X_0_NLR = Step4_NonLinear(X_normalized, y_normalized, X_0)
-
-    #     if selected_step == 5:
-    #         y_pred_best, X_normalized_NLR, X_0_NLR = Step4_NonLinear(X_normalized, y_normalized, X_0)
-    #         print("Running Step 5: Regularisation")
-    #         y_pred_lasso, y_pred_ridge, y_pred_lasso_NLR, y_pred_ridge_NLR = Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized)
-
-    #     if selected_step == 6:
-    #         y_pred_gd, y_pred_closed = Step3_GD_Closed_form(X_normalized, y_normalized)
-    #         y_pred_best, X_normalized_NLR, X_0_NLR = Step4_NonLinear(X_normalized, y_normalized, X_0)
-    #         y_pred_lasso, y_pred_ridge, y_pred_lasso_NLR, y_pred_ridge_NLR = Step5_Regularisation(X_normalized, X_normalized_NLR, y_normalized)
-    #         print("Running Step 6: Gurobi Validation")
-    #         prediction_model = {"gradient_descent": y_pred_gd, 'closed_form': y_pred_closed, 'non_linear_model': y_pred_best
-    #                             , 'Linear_L1': y_pred_lasso, 'Linear_L2': y_pred_ridge, 'non_linear_L1': y_pred_lasso_NLR, 
-    #                             'non_linear_L2': y_pred_ridge_NLR}
-    #         #select ML model for validation
-    #         MLmodel = "non_linear_L2"
-            
-    #         optimal_obj_val, real_revenue_val = Step6_Gurobi_Validation(dataset, prices, prediction_model[MLmodel], MLmodel)
-
-    #     if selected_step == 7:
-    #         print("Running Step 7: K-means Clustering")
-    #         Step7_kmeansCluster(X_normalized, y_normalized)
-    
-    
-    
-    
+    if model == 'Model 2':
+        
+        X_normalized_model_2, y_normalized_model_2 = M2_Step1(prices, dataset)
+        y_pred_class_best = M2_Step2(X_normalized_model_2, y_normalized_model_2)
     
     
     
