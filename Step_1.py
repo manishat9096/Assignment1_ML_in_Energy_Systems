@@ -8,10 +8,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 random.seed(42)
     
-def samples_generation(n_samples):
-    
-    # Parameters
-    T = 24
+def samples_generation(T, n_samples):
     
     windfarm_capacity = pd.read_csv("Capacity of wind farms.csv", delimiter=";")
     loads = pd.read_csv("Loads.csv", delimiter=";")
@@ -39,7 +36,7 @@ def samples_generation(n_samples):
     return windfarm_samples, loads_samples
 
 
-def opti_schedule(windfarm_samples, loads_samples, sample_n):
+def opti_schedule(T, windfarm_samples, loads_samples, sample_n):
     
     # Define ranges
     GENERATORS_ALL = ['G1', 'G2', 'G3', 'WF1', 'WF2']
@@ -64,9 +61,8 @@ def opti_schedule(windfarm_samples, loads_samples, sample_n):
     load_nodes = {load: node for node, load in data_loads}
     bus_nodes = {bus: node for node, bus in data_buses}
     
-    # Parameters
-    T = 24
-    M = 10**5
+    # Parameter
+    M = 10**9
     
     # Import data
     B = pd.read_csv("B (power transfer factor of each bus to each line).csv", delimiter=";")
@@ -80,7 +76,6 @@ def opti_schedule(windfarm_samples, loads_samples, sample_n):
     
     P_cost_data = pd.read_csv("Production cost of generating units.csv", delimiter=";") 
     start_cost_data = pd.read_csv("Start-up cost of generating units.csv", delimiter=";") 
-    
     
     P_max = {}
     P_min = {}
@@ -113,7 +108,6 @@ def opti_schedule(windfarm_samples, loads_samples, sample_n):
     for line in range(len(lines_def)):
         lines_def[line] = tuple(list(lines_def[line]) + 
                                  [lines_capacity['fmax'][line]])
-    
     
     # Define gurobi model
     model = gb.Model("optimization_model")
@@ -218,7 +212,6 @@ def opti_schedule(windfarm_samples, loads_samples, sample_n):
         )
         
         # Line technical constraint        
-            
         for l, (node1, node2, limit) in enumerate(lines_def):
                 
             constraint_lb = model.addConstr(
@@ -375,12 +368,13 @@ def opti_schedule(windfarm_samples, loads_samples, sample_n):
 
 ### Step 2
 ## Solving
+T = 24
 n_samples = 5
-windfarm_samples, loads_samples = samples_generation(n_samples)
+windfarm_samples, loads_samples = samples_generation(T, n_samples)
 res_commitment = []            
             
 for sample in range(n_samples):
-    res = opti_schedule(windfarm_samples, loads_samples, sample)
+    res = opti_schedule(T, windfarm_samples, loads_samples, sample)
     res_commitment.append(res)
     
     
