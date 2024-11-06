@@ -62,7 +62,7 @@ def opti_schedule(T, windfarm_samples, loads_samples, sample_n):
     bus_nodes = {bus: node for node, bus in data_buses}
     
     # Parameter
-    M = 10**9
+    M = 10**5
     
     # Import data
     B = pd.read_csv("B (power transfer factor of each bus to each line).csv", delimiter=";")
@@ -269,7 +269,7 @@ def opti_schedule(T, windfarm_samples, loads_samples, sample_n):
                     for tau in range(h, min_DT)
                 }
                 
-                min_UT = min(T, h + DT_min[g])
+                min_UT = min(T, h + UT_min[g]+1)
                 minimum_UT_constr = {
                     model.addConstr(
                         generator_commitment[(g,h-1)] - generator_commitment[(g,h)] + generator_commitment[(g,tau)],
@@ -295,17 +295,17 @@ def opti_schedule(T, windfarm_samples, loads_samples, sample_n):
     load_data = {l: loads_samples[l][sample_n] for l in LOADS}
     wf_data = {wf: windfarm_samples[wf][sample_n] for wf in WINDFARMS}
     
-    # Plot Generator Production for each generator
-    plt.figure(figsize=(10, 6), dpi=300)
-    for g, production in production_data.items():
-        plt.plot(range(T), production, label=f'Production of {g}')
-    plt.xlabel('Time (hours)', fontsize=14)
-    plt.ylabel('Electricity Production (MW)', fontsize=14)
-    plt.title('Generator Production over Time', fontsize=16)
-    plt.xlim(0, T-1)
-    plt.legend()
-    plt.grid()
-    plt.show()
+    # # Plot Generator Production for each generator
+    # plt.figure(figsize=(10, 6), dpi=300)
+    # for g, production in production_data.items():
+    #     plt.plot(range(T), production, label=f'Production of {g}')
+    # plt.xlabel('Time (hours)', fontsize=14)
+    # plt.ylabel('Electricity Production (MW)', fontsize=14)
+    # plt.title('Generator Production over Time', fontsize=16)
+    # plt.xlim(0, T-1)
+    # plt.legend()
+    # plt.grid()
+    # plt.show()
     
     # Plot Generator Commitment for each generator  
     fig, axes = plt.subplots(len(unit_commitment), 1, figsize=(16, 3 * len(unit_commitment)), sharex=True, dpi=300)
@@ -320,56 +320,56 @@ def opti_schedule(T, windfarm_samples, loads_samples, sample_n):
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
     plt.show()
     
-    # Plot Slack Variables Values for each bus
-    plt.figure(figsize=(10, 6), dpi=300)
-    for n, eta_vals in eta_data.items():
-        if any(val != 0 for val in eta_vals):  # Check if any value is non-zero
-            plt.plot(range(T), eta_vals, label=f'Eta of {n}', linestyle='--')
-    for n, delta_vals in delta_data.items():
-        if any(val != 0 for val in delta_vals):  # Check if any value is non-zero
-            plt.plot(range(T), [-val for val in delta_vals], label=f'Delta of {n}', linestyle='-.')
-    plt.xlabel('Time (hours)', fontsize=14)
-    plt.ylabel('Slack Variables Values', fontsize=14)
-    plt.title('Slack Variables Values over Time', fontsize=16)
-    plt.xlim(0, T-1)
-    plt.legend()
-    plt.grid()
-    plt.show()
+    # # Plot Slack Variables Values for each bus
+    # plt.figure(figsize=(10, 6), dpi=300)
+    # for n, eta_vals in eta_data.items():
+    #     if any(val != 0 for val in eta_vals):  # Check if any value is non-zero
+    #         plt.plot(range(T), eta_vals, label=f'Eta of {n}', linestyle='--')
+    # for n, delta_vals in delta_data.items():
+    #     if any(val != 0 for val in delta_vals):  # Check if any value is non-zero
+    #         plt.plot(range(T), [-val for val in delta_vals], label=f'Delta of {n}', linestyle='-.')
+    # plt.xlabel('Time (hours)', fontsize=14)
+    # plt.ylabel('Slack Variables Values', fontsize=14)
+    # plt.title('Slack Variables Values over Time', fontsize=16)
+    # plt.xlim(0, T-1)
+    # plt.legend()
+    # plt.grid()
+    # plt.show()
     
-    # Plot Load data for each load
-    plt.figure(figsize=(10, 6), dpi=300)
-    for l, load_vals in load_data.items():
-        plt.plot(range(T), load_vals, label=f'Load of {l}', linestyle=':')
-    total_load = [sum(load_data[l][h] for l in LOADS) for h in range(T)]
-    plt.plot(range(T), total_load, label='Total Load', linestyle='-', color='red')
-    plt.xlabel('Time (hours)', fontsize=14)
-    plt.ylabel('Load (MW)', fontsize=14)
-    plt.title('Load over Time', fontsize=16)
-    plt.xlim(0, T-1)
-    plt.legend()
-    plt.grid()
-    plt.show()
+    # # Plot Load data for each load
+    # plt.figure(figsize=(10, 6), dpi=300)
+    # for l, load_vals in load_data.items():
+    #     plt.plot(range(T), load_vals, label=f'Load of {l}', linestyle=':')
+    # total_load = [sum(load_data[l][h] for l in LOADS) for h in range(T)]
+    # plt.plot(range(T), total_load, label='Total Load', linestyle='-', color='red')
+    # plt.xlabel('Time (hours)', fontsize=14)
+    # plt.ylabel('Load (MW)', fontsize=14)
+    # plt.title('Load over Time', fontsize=16)
+    # plt.xlim(0, T-1)
+    # plt.legend()
+    # plt.grid()
+    # plt.show()
     
-    # Plot Wind Farm production for each wind farm
-    plt.figure(figsize=(10, 6), dpi=300)
-    for wf, wf_vals in wf_data.items():
-        plt.plot(range(T), wf_vals, label=f'WF Production of {wf}', linestyle='--')
-    total_prod = [sum(wf_data[wf][h] for wf in WINDFARMS) for h in range(T)]
-    plt.plot(range(T), total_prod, label='Total WF Production', linestyle='-', color='red')
-    plt.xlabel('Time (hours)', fontsize=14)
-    plt.ylabel('WF Production (MW)', fontsize=14)
-    plt.title('Wind Farm Production over Time', fontsize=16)
-    plt.xlim(0, T-1)
-    plt.legend()
-    plt.grid()
-    plt.show()
+    # # Plot Wind Farm production for each wind farm
+    # plt.figure(figsize=(10, 6), dpi=300)
+    # for wf, wf_vals in wf_data.items():
+    #     plt.plot(range(T), wf_vals, label=f'WF Production of {wf}', linestyle='--')
+    # total_prod = [sum(wf_data[wf][h] for wf in WINDFARMS) for h in range(T)]
+    # plt.plot(range(T), total_prod, label='Total WF Production', linestyle='-', color='red')
+    # plt.xlabel('Time (hours)', fontsize=14)
+    # plt.ylabel('WF Production (MW)', fontsize=14)
+    # plt.title('Wind Farm Production over Time', fontsize=16)
+    # plt.xlim(0, T-1)
+    # plt.legend()
+    # plt.grid()
+    # plt.show()
 
     return unit_commitment
 
 ### Step 2
 ## Solving
-T = 24
-n_samples = 5
+T = 24 * 1
+n_samples = 10
 windfarm_samples, loads_samples = samples_generation(T, n_samples)
 res_commitment = []            
             
