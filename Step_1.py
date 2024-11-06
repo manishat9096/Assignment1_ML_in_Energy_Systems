@@ -10,8 +10,8 @@ random.seed(42)
     
 def samples_generation(T, n_samples):
     
-    windfarm_capacity = pd.read_csv("Capacity of wind farms.csv", delimiter=";")
-    loads = pd.read_csv("Loads.csv", delimiter=";")
+    windfarm_capacity = pd.read_csv("Datasets/Capacity of wind farms.csv", delimiter=";")
+    loads = pd.read_csv("Datasets/Loads.csv", delimiter=";")
     
     # Create dictionaries to store data samples
     loads_samples = {f"L{i+1}": [] for i in range(len(loads))}
@@ -65,17 +65,17 @@ def opti_schedule(T, windfarm_samples, loads_samples, sample_n):
     M = 10**5
     
     # Import data
-    B = pd.read_csv("B (power transfer factor of each bus to each line).csv", delimiter=";")
-    lines_capacity = pd.read_csv("Transmission capacity of lines.csv", delimiter=";") 
+    B = pd.read_csv("Datasets/B (power transfer factor of each bus to each line).csv", delimiter=";")
+    lines_capacity = pd.read_csv("Datasets/Transmission capacity of lines.csv", delimiter=";") 
         
-    P_max_data = pd.read_csv("Maximum production of generating units.csv", delimiter=";") 
-    P_min_data = pd.read_csv("Minimum production of generating units.csv", delimiter=";") 
-    R_rate_data = pd.read_csv("Ramping rate of generating units.csv", delimiter=";") 
-    DT_min_data = pd.read_csv("Minimum down time of generating units.csv", delimiter=";") 
-    UT_min_data = pd.read_csv("Minimum up time of generating units.csv", delimiter=";") 
+    P_max_data = pd.read_csv("Datasets/Maximum production of generating units.csv", delimiter=";") 
+    P_min_data = pd.read_csv("Datasets/Minimum production of generating units.csv", delimiter=";") 
+    R_rate_data = pd.read_csv("Datasets/Ramping rate of generating units.csv", delimiter=";") 
+    DT_min_data = pd.read_csv("Datasets/Minimum down time of generating units.csv", delimiter=";") 
+    UT_min_data = pd.read_csv("Datasets/Minimum up time of generating units.csv", delimiter=";") 
     
-    P_cost_data = pd.read_csv("Production cost of generating units.csv", delimiter=";") 
-    start_cost_data = pd.read_csv("Start-up cost of generating units.csv", delimiter=";") 
+    P_cost_data = pd.read_csv("Datasets/Production cost of generating units.csv", delimiter=";") 
+    start_cost_data = pd.read_csv("Datasets/Start-up cost of generating units.csv", delimiter=";") 
     
     P_max = {}
     P_min = {}
