@@ -1,4 +1,4 @@
-from Step_1 import *
+from Step_1_Victor import *
 
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics import classification_report
@@ -9,22 +9,21 @@ from sklearn import svm
 from sklearn.inspection import DecisionBoundaryDisplay
 from sklearn.decomposition import PCA
 
-# Convert the target lists into pandas Series for consistency
-y_G1 = pd.Series(y_G1_values)
-y_G2 = pd.Series(y_G2_values)
-y_G3 = pd.Series(y_G3_values)
+# # Convert the target lists into pandas Series for consistency
+# y_G1 = pd.Series(y_G1_values)
+# y_G2 = pd.Series(y_G2_values)
+# y_G3 = pd.Series(y_G3_values)
 
-scaler = MinMaxScaler()
-X_normalized = scaler.fit_transform(X)
+# scaler = MinMaxScaler()
+# X_normalized = scaler.fit_transform(X)
 
-# Split data into training and testing sets for each target
-split_index = int(0.8 * len(X_normalized))
+# # Split data into training and testing sets for each target
+# split_index = int(0.8 * len(X_normalized))
 
-X_train = X_normalized[:split_index]
-X_test = X_normalized[split_index:]
+# X_train = X_normalized[:split_index]
+# X_test = X_normalized[split_index:]
 
 
-"""
 ######## Uploading and treating the features ##########
 features = pd.read_csv('Dataset.csv')
 
@@ -86,31 +85,36 @@ for Y in hourly_target:
     y_G1.append(Y['G1'])
     y_G2.append(Y['G2'])
     y_G3.append(Y['G3'])
-"""
+
 
 ##################################################
 
 # Function to check and process each target
-def process_target(X_train, X_test, split_index, y, label, kernel_SVM):
+def process_target(X_train, X_val, y, split_index_train, split_index_val, label, n_neighbors, kernel_SVM, val_test, h):
     if len(y.unique()) > 1:  # Only proceed if there are more than two unique values
 
-        y_train = y[:split_index]
-        y_test = y[split_index:]
-
+        if val_test == 'VAL':
+            y_train = y[:split_index_train]
+            y_val = y[split_index_train:split_index_val]
+        
+        if val_test == 'TEST':
+            y_train = y[:split_index_train]
+            y_val = y[split_index_val:]
+            
         # KNeighbors Classifier
-        neigh = KNeighborsClassifier(n_neighbors=3)
+        neigh = KNeighborsClassifier(n_neighbors)
         neigh.fit(X_train, y_train)
-        predictions_KN = neigh.predict(X_test)
+        predictions_KN = neigh.predict(X_val)
 
-        evaluate_model(y_test, predictions_KN, f"{label} Classifier - K-Neighbours")
+        evaluate_model(y_val, predictions_KN, f"{label} Classifier - K-Neighbours", h)
 
         # SVM
         clf = svm.SVC(kernel=kernel_SVM)
         clf.fit(X_train, y_train)
-        predictions_SVM = clf.predict(X_test)
+        predictions_SVM = clf.predict(X_val)
 
         evaluate_model(
-            y_test, predictions_SVM, f"{label} Classifier - SVM ({kernel_SVM})"
+            y_val, predictions_SVM, f"{label} Classifier - SVM ({kernel_SVM})", h
         )
 
         # # SVM with PCA for 2D visualization
@@ -121,7 +125,7 @@ def process_target(X_train, X_test, split_index, y, label, kernel_SVM):
 
 
 # Plot function for predictions and actual values
-def plot_predictions(y_test, predictions, title):
+def plot_predictions(y_test, predictions, title, hour):
     plt.figure(figsize=(10, 6), dpi=300)
     plt.scatter(range(len(y_test)), y_test, label="Actual", color="b", alpha=0.6, s=40)
     plt.scatter(
@@ -135,15 +139,15 @@ def plot_predictions(y_test, predictions, title):
     )
     plt.xlabel("Sample Index", fontsize=14)
     plt.ylabel("Class Label", fontsize=14)
-    plt.title(f"{title} - Actual vs Predicted", fontsize=16)
+    plt.title(f"{title} - Actual vs Predicted - t={h}", fontsize=16)
     plt.grid(True)
     plt.legend()
     plt.show()
 
 
 # Evaluate model with classification report and plot
-def evaluate_model(y_test, predictions, title):
-    plot_predictions(y_test, predictions, f"{title}")
+def evaluate_model(y_test, predictions, title, h):
+    plot_predictions(y_test, predictions, f"{title}", f"{h+1}")
     report = classification_report(y_test, predictions)
     print(f"Classification Report for {title}:\n")
     print(report)
@@ -192,10 +196,26 @@ def plot_training_data_with_decision_boundary(
     ax.grid(True)
 
 
-# Process each target
+# Process each target for each hour
+
+n_neighbors = 10
 # kernel_SVM = "linear"
 kernel_SVM = "poly"
 # kernel_SVM = "rbf"
-process_target(X_train, X_test, split_index, y_G1, "G1", kernel_SVM)
-process_target(X_train, X_test, split_index, y_G2, "G2", kernel_SVM)
-process_target(X_train, X_test, split_index, y_G3, "G3", kernel_SVM)
+
+
+
+for h in range(len(y_G1)):
+    
+    val_test = 'VAL'
+    
+    process_target(X_train[h], X_val[h], y_G1[h], split_index_train, split_index_val, "G1", n_neighbors, kernel_SVM, val_test, h)
+    process_target(X_train[h], X_val[h], y_G2[h], split_index_train, split_index_val, "G2", n_neighbors, kernel_SVM, val_test, h)
+    process_target(X_train[h], X_val[h], y_G3[h], split_index_train, split_index_val, "G3", n_neighbors, kernel_SVM, val_test, h)
+
+
+    val_test = 'TEST'
+    
+    process_target(X_train[h], X_test[h], y_G1[h], split_index_train, split_index_val, "G1", n_neighbors, kernel_SVM, val_test, h)
+    process_target(X_train[h], X_test[h], y_G2[h], split_index_train, split_index_val, "G2", n_neighbors, kernel_SVM, val_test, h)
+    process_target(X_train[h], X_test[h], y_G3[h], split_index_train, split_index_val, "G3", n_neighbors, kernel_SVM, val_test, h)

@@ -205,9 +205,9 @@ def opti_schedule(T, windfarm_samples, loads_samples, sample_n):
             
         # Balance equation
         balance_constraint = model.addConstr(
-            sum(windfarm_samples[wf][0][h] for wf in WINDFARMS) +  gb.quicksum(generator_production[(g, h)] for g in GENERATORS),
+            sum(windfarm_samples[wf][sample_n][h] for wf in WINDFARMS) +  gb.quicksum(generator_production[(g, h)] for g in GENERATORS),
             gb.GRB.EQUAL,
-            sum(loads_samples[load][0][h] for load in LOADS) + gb.quicksum(eta[(n,h)] - delta[(n,h)] for n in BUSES),
+            sum(loads_samples[load][sample_n][h] for load in LOADS) + gb.quicksum(eta[(n,h)] - delta[(n,h)] for n in BUSES),
             name=f'Balance equation t={h}'
         )
         
@@ -282,6 +282,7 @@ def opti_schedule(T, windfarm_samples, loads_samples, sample_n):
     
 
     model.optimize()
+    model.write("model.lp")
     print("Status", model.status) 
     print("Objective function", model.ObjVal)
     
@@ -369,7 +370,7 @@ def opti_schedule(T, windfarm_samples, loads_samples, sample_n):
 ### Step 2
 ## Solving
 T = 24 
-n_samples = 10
+n_samples = 1
 windfarm_samples, loads_samples = samples_generation(T, n_samples)
 res_commitment = []            
             
