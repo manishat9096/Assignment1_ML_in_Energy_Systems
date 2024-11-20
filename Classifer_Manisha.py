@@ -88,16 +88,6 @@ def train_and_evaluate(model, model_name, X_train, X_test, y_train, y_test, X_no
     y_pred = model.predict(X_test)
 
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    
-    # Evaluation of the model
-    # print(f"Model: {model_name}")
-    # print("Accuracy:", accuracy_score(y_test, y_pred))
-
-
-    # ROC-AUC Score - range 0 to 1 - higher score better classifier
-    y_proba = None
-    if hasattr(model, 'predict_proba'):
-        y_proba = model.predict_proba(X_test)[:, 1]
 
 
     # All evaluation metrics added to metrics list
@@ -109,13 +99,19 @@ def train_and_evaluate(model, model_name, X_train, X_test, y_train, y_test, X_no
         'F1 Score': f1_score(y_test, y_pred, average='weighted'),
     }
 
-    if y_proba is not None:
-        roc_auc = roc_auc_score(y_test, y_proba)
-        metrics['ROC-AUC'] = roc_auc
+    # ROC-AUC Score - range 0 to 1 - higher score better classifier
+    if len(set(y_test)) > 1:
+        if hasattr(model, 'predict_proba'):
+            y_proba = model.predict_proba(X_test)[:, 1]
+            metrics['ROC-AUC'] = roc_auc_score(y_test, y_proba)
+        else:
+            metrics['ROC-AUC'] = None
+    else:
+        metrics['ROC-AUC'] = None
 
     # Confusion Matrix - counts of true positives, false positives, true negatives, and false negatives
     cm = confusion_matrix(y_test, y_pred)
-    # print("Confusion Matrix:\n", cm)
+    metrics['Confusion Matrix'] = cm
 
     return model, y_pred, metrics
 
@@ -149,7 +145,8 @@ def all_classifiers(X_train, X_val, y, split_index_train, split_index_val, label
 
             # Create an identifier for the model
             model_key = f"{model_name}_{label}_{h}"
-
+            metrics["Hour"] = h
+            metrics["Label"] = label
             # Save metrics under the model identifier
             metrics_dict[model_key] = metrics
 
@@ -167,12 +164,25 @@ for h in range(len(y_G1)):
     metrics_df_G3 = all_classifiers(X_train[h], X_val[h], y_G3[h], split_index_train, split_index_val, "G3", n_neighbors, val_test, h)
 
 
-    # val_test = 'TEST'
-    
-    # all_classifiers(X_train[h], X_test[h], y_G1[h], split_index_train, split_index_val, "G1", n_neighbors, val_test, h)
-    # all_classifiers(X_train[h], X_test[h], y_G2[h], split_index_train, split_index_val, "G2", n_neighbors, val_test, h)
-    # all_classifiers(X_train[h], X_test[h], y_G3[h], split_index_train, split_index_val, "G3", n_neighbors, val_test, h)
-
 metrics_df = pd.DataFrame.from_dict(metrics_dict, orient="index")
 metrics_df.index.name = "Model_Label_Hour"
+
+
+# calculate the mean of precision and recall metrics for each generator-model combination over all hours
+mean_metrics_df = pd.DataFrame()
+for model in metrics_df['Model'].unique():
+    for label in metrics_df['Label'].unique():
+        mean_values = metrics_df.loc[(metrics_df['Label'] == label) & (metrics_df['Model'] == model)].mean(numeric_only=True)
+        mean_values = mean_values.loc[['Recall', 'Precision']]
+        mean_values['Model'] = model
+        mean_values['Label'] = label
+        mean_metrics_df = mean_metrics_df.append(mean_values, ignore_index=True)
+
+
+# for h in range(len(y_G1)):
+#     val_test = 'TEST'
+    
+#     all_classifiers(X_train[h], X_test[h], y_G1[h], split_index_train, split_index_val, "G1", n_neighbors, val_test, h)
+#     all_classifiers(X_train[h], X_test[h], y_G2[h], split_index_train, split_index_val, "G2", n_neighbors, val_test, h)
+#     all_classifiers(X_train[h], X_test[h], y_G3[h], split_index_train, split_index_val, "G3", n_neighbors, val_test, h)
 
