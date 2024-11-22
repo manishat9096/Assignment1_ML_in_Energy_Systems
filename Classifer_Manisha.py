@@ -1,4 +1,4 @@
-
+import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV, StratifiedKFold
 from sklearn.linear_model import LogisticRegression
@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 import pandas as pd
 
 ######## Uploading and treating the features ##########
-features = pd.read_csv('Datasets/Dataset.csv')
+features = pd.read_csv('Dataset.csv')
 
 # We ant to create dataframes that contain for each hour of the day, the data from each sample.
 # So, we create 24 dataframes containing 1000 samples for an hour.
@@ -55,7 +55,7 @@ for X in dataframes:
 
 
 ######## Uploading and treating the target ###########
-target = pd.read_csv('Datasets/Target.csv')
+target = pd.read_csv('Target.csv')
 
 # List to store DataFrames
 hourly_target = []
@@ -150,39 +150,155 @@ def all_classifiers(X_train, X_val, y, split_index_train, split_index_val, label
             # Save metrics under the model identifier
             metrics_dict[model_key] = metrics
 
-# Process each target for each hour
+            if model_name == "KNeighbors" :
+                plot_predictions(y_val, y_pred, f"{model_name} {label} - {metrics['Recall']} ", h)
 
-n_neighbors = 10
+# Plot function for predictions and actual values
+def plot_predictions(y_test, predictions, title, hour):
+    plt.figure(figsize=(10, 6), dpi=300)
+    plt.scatter(range(len(y_test)), y_test, label="Actual", color="b", alpha=0.6, s=40)
+    plt.scatter(
+        range(len(predictions)),
+        predictions,
+        label="Predicted",
+        color="r",
+        alpha=0.6,
+        s=40,
+        marker="x",
+    )
+    plt.xlabel("Sample Index", fontsize=14)
+    plt.ylabel("Class Label", fontsize=14)
+    plt.title(f"{title} - Actual vs Predicted - t={h}", fontsize=16)
+    plt.grid(True)
+    plt.legend()
+    plt.show()
+    
+# # Process each target for each hour
+
+# n_neighbors = 10
+
+
+# for h in range(len(y_G1)):
+    
+#     val_test = 'VAL'
+    
+#     metrics_df_G1 = all_classifiers(X_train[h], X_val[h], y_G1[h], split_index_train, split_index_val, "G1", n_neighbors, val_test, h)
+#     metrics_df_G2 = all_classifiers(X_train[h], X_val[h], y_G2[h], split_index_train, split_index_val, "G2", n_neighbors, val_test, h)
+#     metrics_df_G3 = all_classifiers(X_train[h], X_val[h], y_G3[h], split_index_train, split_index_val, "G3", n_neighbors, val_test, h)
+
+
+# metrics_df = pd.DataFrame.from_dict(metrics_dict, orient="index")
+# metrics_df.index.name = "Model_Label_Hour"
+
+
+# # calculate the mean of precision and recall metrics for each generator-model combination over all hours
+# mean_metrics_list = []  # Use a list to collect mean values
+
+# for model in metrics_df['Model'].unique():
+#     for label in metrics_df['Label'].unique():
+#         mean_values = metrics_df.loc[(metrics_df['Label'] == label) & (metrics_df['Model'] == model)].mean(numeric_only=True)
+#         mean_values = mean_values.loc[['Recall', 'Precision']]
+#         mean_values['Model'] = model
+#         mean_values['Label'] = label
+#         mean_metrics_list.append(mean_values)  # Collect mean values in the list
+
+# # Create a dataframe from the list of mean values
+# mean_metrics_df = pd.DataFrame(mean_metrics_list)
+
+
+# Define the range of n_neighbors to test
+n_neighbors_range = range(23, 25)  # Example: testing n_neighbors from 1 to 20
+
+recall_scores = {'G1': [], 'G2': [], 'G3': [], 'Mean': []}
+all_mean_metrics_dfs = [] 
+
+# Outer loop to test different values of n_neighbors
+for n_neighbors in n_neighbors_range:
+    metrics_dict = {}  # Initialize/reset the metrics dictionary for each n_neighbors
+    
+    for h in range(len(y_G1)):
+        val_test = 'VAL'
+        
+        metrics_df_G1 = all_classifiers(X_train[h], X_val[h], y_G1[h], split_index_train, split_index_val, "G1", n_neighbors, val_test, h)
+        metrics_df_G2 = all_classifiers(X_train[h], X_val[h], y_G2[h], split_index_train, split_index_val, "G2", n_neighbors, val_test, h)
+        metrics_df_G3 = all_classifiers(X_train[h], X_val[h], y_G3[h], split_index_train, split_index_val, "G3", n_neighbors, val_test, h)
+
+    # Create a dataframe from the metrics dictionary
+    metrics_df = pd.DataFrame.from_dict(metrics_dict, orient="index")
+    metrics_df.index.name = "Model_Label_Hour"
+
+    # Calculate the mean of precision and recall metrics for each generator-model combination over all hours
+    mean_metrics_list = []  # Use a list to collect mean values
+
+    for model in metrics_df['Model'].unique():
+        for label in metrics_df['Label'].unique():
+            mean_values = metrics_df.loc[(metrics_df['Label'] == label) & (metrics_df['Model'] == model)].mean(numeric_only=True)
+            mean_values = mean_values.loc[['Recall', 'Precision']]
+            mean_values['Model'] = model
+            mean_values['Label'] = label
+            mean_metrics_list.append(mean_values)  # Collect mean values in the list
+    
+    # Create a dataframe from the list of mean values
+    mean_metrics_df = pd.DataFrame(mean_metrics_list)
+    all_mean_metrics_dfs.append(mean_metrics_df)
+
+    recall_scores['G1'].append(mean_metrics_df['Recall'][12])
+    recall_scores['G2'].append(mean_metrics_df['Recall'][13])
+    recall_scores['G3'].append(mean_metrics_df['Recall'][14])
+    recall_scores['Mean'].append((mean_metrics_df['Recall'][12] + mean_metrics_df['Recall'][13] + mean_metrics_df['Recall'][14])/3)
+
+max_mean_recall = max(recall_scores['Mean'])
+max_n_neighbors = n_neighbors_range[recall_scores['Mean'].index(max_mean_recall)]
+
+print(f"Maximum Mean Recall: {max_mean_recall}")
+print(f"Corresponding n_neighbors: {max_n_neighbors}")
+
+best_mean_metrics_df = all_mean_metrics_dfs[recall_scores['Mean'].index(max_mean_recall)]
+print("\nMean Metrics DataFrame for the Best n_neighbors:")
+print(best_mean_metrics_df.sort_values(by='Label').reset_index(drop=True))
+
+# Plot recall scores for each generator
+plt.figure(figsize=(10, 6), dpi=300)
+for generator, recalls in recall_scores.items():
+    plt.plot(n_neighbors_range, recalls, marker='o', label=f'{generator} Recall')
+    
+plt.plot(
+    max_n_neighbors, max_mean_recall, 
+    marker='o', markerfacecolor='none', markeredgecolor='red', markersize=12, 
+    label='Maximum Mean Recall'
+)
+
+plt.title('Recall vs K-Nearest Neighbours for Each Generator', fontsize=16)
+plt.xlabel('n_neighbors', fontsize=14)
+plt.ylabel('Mean Recall', fontsize=14)
+plt.legend()
+plt.grid()
+plt.show()
 
 
 for h in range(len(y_G1)):
+    val_test = 'TEST'
     
-    val_test = 'VAL'
-    
-    metrics_df_G1 = all_classifiers(X_train[h], X_val[h], y_G1[h], split_index_train, split_index_val, "G1", n_neighbors, val_test, h)
-    metrics_df_G2 = all_classifiers(X_train[h], X_val[h], y_G2[h], split_index_train, split_index_val, "G2", n_neighbors, val_test, h)
-    metrics_df_G3 = all_classifiers(X_train[h], X_val[h], y_G3[h], split_index_train, split_index_val, "G3", n_neighbors, val_test, h)
+    metrics_df_G1 = all_classifiers(X_train[h], X_test[h], y_G1[h], split_index_train, split_index_val, "G1", max_n_neighbors, val_test, h)
+    metrics_df_G2 = all_classifiers(X_train[h], X_test[h], y_G2[h], split_index_train, split_index_val, "G2", max_n_neighbors, val_test, h)
+    metrics_df_G3 = all_classifiers(X_train[h], X_test[h], y_G3[h], split_index_train, split_index_val, "G3", max_n_neighbors, val_test, h)
 
-
+# Create a dataframe from the metrics dictionary
 metrics_df = pd.DataFrame.from_dict(metrics_dict, orient="index")
 metrics_df.index.name = "Model_Label_Hour"
 
+# Calculate the mean of precision and recall metrics for each generator-model combination over all hours
+mean_metrics_list = []  # Use a list to collect mean values
 
-# calculate the mean of precision and recall metrics for each generator-model combination over all hours
-mean_metrics_df = pd.DataFrame()
 for model in metrics_df['Model'].unique():
     for label in metrics_df['Label'].unique():
         mean_values = metrics_df.loc[(metrics_df['Label'] == label) & (metrics_df['Model'] == model)].mean(numeric_only=True)
         mean_values = mean_values.loc[['Recall', 'Precision']]
         mean_values['Model'] = model
         mean_values['Label'] = label
-        mean_metrics_df = mean_metrics_df.append(mean_values, ignore_index=True)
+        mean_metrics_list.append(mean_values)  # Collect mean values in the list
 
-
-# for h in range(len(y_G1)):
-#     val_test = 'TEST'
+# Create a dataframe from the list of mean values
+mean_metrics_df = pd.DataFrame(mean_metrics_list)
     
-#     all_classifiers(X_train[h], X_test[h], y_G1[h], split_index_train, split_index_val, "G1", n_neighbors, val_test, h)
-#     all_classifiers(X_train[h], X_test[h], y_G2[h], split_index_train, split_index_val, "G2", n_neighbors, val_test, h)
-#     all_classifiers(X_train[h], X_test[h], y_G3[h], split_index_train, split_index_val, "G3", n_neighbors, val_test, h)
-
+print(mean_metrics_df.sort_values(by='Label').reset_index(drop=True))
