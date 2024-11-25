@@ -10,12 +10,12 @@ from sklearn.exceptions import UndefinedMetricWarning
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
-
+import numpy as np
 
 import pandas as pd
 
 ######## Uploading and treating the features ##########
-features = pd.read_csv('Dataset.csv')
+features = pd.read_csv("Datasets/Dataset.csv")
 
 # We ant to create dataframes that contain for each hour of the day, the data from each sample.
 # So, we create 24 dataframes containing 1000 samples for an hour.
@@ -55,7 +55,7 @@ for X in dataframes:
 
 
 ######## Uploading and treating the target ###########
-target = pd.read_csv('Target.csv')
+target = pd.read_csv('Datasets/Target.csv')
 
 # List to store DataFrames
 hourly_target = []
@@ -302,3 +302,68 @@ for model in metrics_df['Model'].unique():
 mean_metrics_df = pd.DataFrame(mean_metrics_list)
     
 print(mean_metrics_df.sort_values(by='Label').reset_index(drop=True))
+
+
+################Plot the mean recall and Precision of all models and generators##########
+#put in a function?
+
+
+
+# Sort and prepare the data
+mean_metrics_df = mean_metrics_df.sort_values(by=['Label', 'Model']).reset_index(drop=True)
+
+# Extract unique generators and models
+generators = mean_metrics_df['Label'].unique()  # ['G1', 'G2', 'G3']
+models = mean_metrics_df['Model'].unique()      # ['Logistic Regression', 'SVM Linear', ...]
+
+# Set up bar width and positions
+bar_width = 0.2  # Width of each bar
+spacing_factor = 1.5  # Factor to increase spacing between groups
+x = np.arange(len(generators)) * spacing_factor  # Adjust positions to add space between groups
+
+# Initialize the plot recall
+plt.figure(figsize=(12, 6))
+
+# Plot each model's recall values for the generators
+for i, model in enumerate(models):
+    # Filter data for the current model
+    model_recalls = mean_metrics_df.loc[mean_metrics_df['Model'] == model, 'Recall']
+    # Plot the bars for the current model, offset by `i * bar_width`
+    plt.bar(x + i * bar_width, model_recalls, width=bar_width, label=model)
+
+# Configure plot aesthetics
+plt.xlabel('Generator', fontsize=14)
+plt.ylabel('Average Recall', fontsize=14)
+plt.xticks(x + bar_width * (len(models) / 2 - 0.5), generators)  # Center x-ticks under groups
+plt.legend(title='Model', fontsize=12)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+
+# Show the plot
+plt.show()
+
+# Initialize the plot precision
+plt.figure(figsize=(12, 6))
+
+# Plot each model's recall values for the generators
+for i, model in enumerate(models):
+    # Filter data for the current model
+    model_recalls = mean_metrics_df.loc[mean_metrics_df['Model'] == model, 'Precision']
+    # Plot the bars for the current model, offset by `i * bar_width`
+    plt.bar(x + i * bar_width, model_recalls, width=bar_width, label=model)
+
+# Configure plot aesthetics
+plt.xlabel('Generator', fontsize=14)
+plt.ylabel('Average Precision', fontsize=14)
+plt.xticks(x + bar_width * (len(models) / 2 - 0.5), generators)  # Center x-ticks under groups
+plt.legend(title='Model', fontsize=12)
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.tight_layout()
+
+# Show the plot
+plt.show()
+
+
+
+
+
