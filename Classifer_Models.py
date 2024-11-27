@@ -14,13 +14,14 @@ import numpy as np
 
 import pandas as pd
 
+# %%
+# here we upload the datasets obtained from the optimization model and process the data for the classification
 ######## Uploading and treating the features ##########
 features = pd.read_csv("Datasets/Dataset.csv")
 
-# We ant to create dataframes that contain for each hour of the day, the data from each sample.
+# We want to create dataframes that contain for each hour of the day, the data from each sample.
 # So, we create 24 dataframes containing 1000 samples for an hour.
 # Then, we split the data in training, validation, test sets
-
 # Select the different features (one table for each hour)
 num_dataframes = 24
 
@@ -81,15 +82,14 @@ for Y in hourly_target:
 # print(y_G2.value_counts())
 # print(y_G3.value_counts())
 
-
-def train_and_evaluate(model, model_name, X_train, X_test, y_train, y_test, X_normalized, y):
+# %%
+#here we define the function for the different classifiers used, obtain metrics and plots functions
+def train_and_evaluate(model, model_name, X_train, X_test, y_train, y_test):
 
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
 
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-
-
     # All evaluation metrics added to metrics list
     metrics = {
         'Model': model_name,
@@ -98,7 +98,6 @@ def train_and_evaluate(model, model_name, X_train, X_test, y_train, y_test, X_no
         'Recall': recall_score(y_test, y_pred, average='weighted'),
         'F1 Score': f1_score(y_test, y_pred, average='weighted'),
     }
-
     # ROC-AUC Score - range 0 to 1 - higher score better classifier
     if len(set(y_test)) > 1:
         if hasattr(model, 'predict_proba'):
@@ -108,14 +107,10 @@ def train_and_evaluate(model, model_name, X_train, X_test, y_train, y_test, X_no
             metrics['ROC-AUC'] = None
     else:
         metrics['ROC-AUC'] = None
-
     # Confusion Matrix - counts of true positives, false positives, true negatives, and false negatives
     cm = confusion_matrix(y_test, y_pred)
     metrics['Confusion Matrix'] = cm
-
     return model, y_pred, metrics
-
-metrics_dict = {}
 
 def all_classifiers(X_train, X_val, y, split_index_train, split_index_val, label, n_neighbors, val_test, h):
     global metrics_dict
@@ -140,7 +135,7 @@ def all_classifiers(X_train, X_val, y, split_index_train, split_index_val, label
 
         for model_name, model in models.items():
             trained_model, y_pred, metrics = train_and_evaluate(
-                model, model_name, X_train, X_val, y_train, y_val, X_train, y
+                model, model_name, X_train, X_val, y_train, y_val
             )
 
             # Create an identifier for the model
@@ -150,8 +145,8 @@ def all_classifiers(X_train, X_val, y, split_index_train, split_index_val, label
             # Save metrics under the model identifier
             metrics_dict[model_key] = metrics
 
-            if model_name == "KNeighbors" :
-                plot_predictions(y_val, y_pred, f"{model_name} {label} - {metrics['Recall']} ", h)
+            # if model_name == "KNeighbors" :
+            #     plot_predictions(y_val, y_pred, f"{model_name} {label} - {metrics['Recall']} ", h)
 
 # Plot function for predictions and actual values
 def plot_predictions(y_test, predictions, title, hour):
@@ -172,42 +167,13 @@ def plot_predictions(y_test, predictions, title, hour):
     plt.grid(True)
     plt.legend()
     plt.show()
-    
-# # Process each target for each hour
 
-# n_neighbors = 10
-
-
-# for h in range(len(y_G1)):
-    
-#     val_test = 'VAL'
-    
-#     metrics_df_G1 = all_classifiers(X_train[h], X_val[h], y_G1[h], split_index_train, split_index_val, "G1", n_neighbors, val_test, h)
-#     metrics_df_G2 = all_classifiers(X_train[h], X_val[h], y_G2[h], split_index_train, split_index_val, "G2", n_neighbors, val_test, h)
-#     metrics_df_G3 = all_classifiers(X_train[h], X_val[h], y_G3[h], split_index_train, split_index_val, "G3", n_neighbors, val_test, h)
-
-
-# metrics_df = pd.DataFrame.from_dict(metrics_dict, orient="index")
-# metrics_df.index.name = "Model_Label_Hour"
-
-
-# # calculate the mean of precision and recall metrics for each generator-model combination over all hours
-# mean_metrics_list = []  # Use a list to collect mean values
-
-# for model in metrics_df['Model'].unique():
-#     for label in metrics_df['Label'].unique():
-#         mean_values = metrics_df.loc[(metrics_df['Label'] == label) & (metrics_df['Model'] == model)].mean(numeric_only=True)
-#         mean_values = mean_values.loc[['Recall', 'Precision']]
-#         mean_values['Model'] = model
-#         mean_values['Label'] = label
-#         mean_metrics_list.append(mean_values)  # Collect mean values in the list
-
-# # Create a dataframe from the list of mean values
-# mean_metrics_df = pd.DataFrame(mean_metrics_list)
-
+# %%
+# here we do the Model selection using the Validation set and use the selected model to run the final Test set
+metrics_dict = {}
 
 # Define the range of n_neighbors to test
-n_neighbors_range = range(23, 25)  # Example: testing n_neighbors from 1 to 20
+n_neighbors_range = range(23, 25)  # Example: testing n_neighbors from 1 to 30
 
 recall_scores = {'G1': [], 'G2': [], 'G3': [], 'Mean': []}
 all_mean_metrics_dfs = [] 
@@ -215,7 +181,7 @@ all_mean_metrics_dfs = []
 # Outer loop to test different values of n_neighbors
 for n_neighbors in n_neighbors_range:
     metrics_dict = {}  # Initialize/reset the metrics dictionary for each n_neighbors
-    
+    # run the classifiers on the validation set here
     for h in range(len(y_G1)):
         val_test = 'VAL'
         
@@ -252,9 +218,9 @@ max_n_neighbors = n_neighbors_range[recall_scores['Mean'].index(max_mean_recall)
 
 print(f"Maximum Mean Recall: {max_mean_recall}")
 print(f"Corresponding n_neighbors: {max_n_neighbors}")
-
+# The n_neighbour with maximum mean recall is selected
 best_mean_metrics_df = all_mean_metrics_dfs[recall_scores['Mean'].index(max_mean_recall)]
-print("\nMean Metrics DataFrame for the Best n_neighbors:")
+print("\nMean Metrics Model comparision with the Best n_neighbors on the Validation Dataset:")
 print(best_mean_metrics_df.sort_values(by='Label').reset_index(drop=True))
 
 # Plot recall scores for each generator
@@ -276,6 +242,8 @@ plt.grid()
 plt.show()
 
 
+# %%
+# here we run the selected k-neighbours model on the Test Dataset
 for h in range(len(y_G1)):
     val_test = 'TEST'
     
@@ -300,70 +268,76 @@ for model in metrics_df['Model'].unique():
 
 # Create a dataframe from the list of mean values
 mean_metrics_df = pd.DataFrame(mean_metrics_list)
-    
+print("\nMean Metrics Model comparision on the Test dataset:")
 print(mean_metrics_df.sort_values(by='Label').reset_index(drop=True))
 
+# %%
+# here we plot the precision and recall of all models for each generator in each hour for comparision
 
-################Plot the mean recall and Precision of all models and generators##########
-#put in a function?
+# Separate the data for each generator
+generators = metrics_df['Label'].unique()
 
+# Create a bar plot for each generator
+for generator in generators:
+    # Filter the dataframe for the current generator
+    generator_df = metrics_df[metrics_df['Label'] == generator]
 
+    # Pivot the data for plotting
+    pivoted = generator_df.pivot(index='Hour', columns='Model', values='Recall')
 
-# Sort and prepare the data
-mean_metrics_df = mean_metrics_df.sort_values(by=['Label', 'Model']).reset_index(drop=True)
+    # Plot
+    fig, ax = plt.subplots(figsize=(15, 8))
+    x = np.arange(len(pivoted.index))  # Hours (0 to 23)
+    width = 0.15  # Width of each bar
 
-# Extract unique generators and models
-generators = mean_metrics_df['Label'].unique()  # ['G1', 'G2', 'G3']
-models = mean_metrics_df['Model'].unique()      # ['Logistic Regression', 'SVM Linear', ...]
+    # Iterate through models and plot bars
+    for i, model in enumerate(pivoted.columns):
+        ax.bar(x + i * width, pivoted[model], width, label=model)
 
-# Set up bar width and positions
-bar_width = 0.2  # Width of each bar
-spacing_factor = 1.5  # Factor to increase spacing between groups
-x = np.arange(len(generators)) * spacing_factor  # Adjust positions to add space between groups
+    # Add labels, title, and legend
+    ax.set_xlabel('Hour', fontsize=14)
+    ax.set_ylabel('Recall', fontsize=14)
+    ax.set_title(f'Recall per Model by Hour for Generator {generator}', fontsize=16)
+    ax.set_xticks(x + 2 * width)  # Center the ticks
+    ax.set_xticklabels(pivoted.index, fontsize=12)
+    ax.legend(title='Model', fontsize=12)
 
-# Initialize the plot recall
-plt.figure(figsize=(12, 6))
+    # Show the plot
+    plt.tight_layout()
+    plt.show()
+    plt.close(fig)
 
-# Plot each model's recall values for the generators
-for i, model in enumerate(models):
-    # Filter data for the current model
-    model_recalls = mean_metrics_df.loc[mean_metrics_df['Model'] == model, 'Recall']
-    # Plot the bars for the current model, offset by `i * bar_width`
-    plt.bar(x + i * bar_width, model_recalls, width=bar_width, label=model)
+print('Precision')
 
-# Configure plot aesthetics
-plt.xlabel('Generator', fontsize=14)
-plt.ylabel('Average Recall', fontsize=14)
-plt.xticks(x + bar_width * (len(models) / 2 - 0.5), generators)  # Center x-ticks under groups
-plt.legend(title='Model', fontsize=12)
-plt.grid(axis='y', linestyle='--', alpha=0.7)
-plt.tight_layout()
+# PLOTS PRECISON
 
-# Show the plot
-plt.show()
+# Create a bar plot for each generator
+for generator in generators:
+    # Filter the dataframe for the current generator
+    generator_df = metrics_df[metrics_df['Label'] == generator]
 
-# Initialize the plot precision
-plt.figure(figsize=(12, 6))
+    # Pivot the data for plotting
+    pivoted = generator_df.pivot(index='Hour', columns='Model', values='Precision')
 
-# Plot each model's recall values for the generators
-for i, model in enumerate(models):
-    # Filter data for the current model
-    model_recalls = mean_metrics_df.loc[mean_metrics_df['Model'] == model, 'Precision']
-    # Plot the bars for the current model, offset by `i * bar_width`
-    plt.bar(x + i * bar_width, model_recalls, width=bar_width, label=model)
+    # Plot
+    fig, ax = plt.subplots(figsize=(15, 8))
+    x = np.arange(len(pivoted.index))  # Hours (0 to 23)
+    width = 0.15  # Width of each bar
 
-# Configure plot aesthetics
-plt.xlabel('Generator', fontsize=14)
-plt.ylabel('Average Precision', fontsize=14)
-plt.xticks(x + bar_width * (len(models) / 2 - 0.5), generators)  # Center x-ticks under groups
-plt.legend(title='Model', fontsize=12)
-plt.grid(axis='y', linestyle='--', alpha=0.7)
-plt.tight_layout()
+    # Iterate through models and plot bars
+    for i, model in enumerate(pivoted.columns):
+        ax.bar(x + i * width, pivoted[model], width, label=model)
 
-# Show the plot
-plt.show()
+    # Add labels, title, and legend
+    ax.set_xlabel('Hour', fontsize=14)
+    ax.set_ylabel('Precision', fontsize=14)
+    ax.set_title(f'Precision per Model by Hour for Generator {generator}', fontsize=16)
+    ax.set_xticks(x + 2 * width)  # Center the ticks
+    ax.set_xticklabels(pivoted.index, fontsize=12)
+    ax.legend(title='Model', fontsize=12)
 
+    plt.tight_layout()
+    plt.show()
+    plt.close(fig)
 
-
-
-
+print('End')
